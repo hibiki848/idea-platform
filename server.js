@@ -37,7 +37,7 @@ const url = baseUrl.includes("/") ? baseUrl : `${baseUrl}/${dbName}`;
 // もし mysql://.../something の形ならDB名を強制的に上書き
 const finalUrl = url.replace(/\/[^/?#]+(\?|#|$)/, `/${dbName}$1`);
 
-const db = mysql.createPool(finalUrl);
+const db = require("./db");
 
 // 起動時に接続テスト（ログで原因がすぐ分かる）
 (async () => {
