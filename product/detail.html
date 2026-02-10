@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IdeaShelf | 詳細</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="index.html">
+        <span class="logo" aria-hidden="true"></span>
+        <span>IdeaShelf</span>
+      </a>
+
+      <div class="nav-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <!-- ★ログイン状態表示 -->
+        <span id="authStatus" class="small" style="opacity:.85;">未ログイン</span>
+
+        <!-- ★ログインフォーム（未ログイン時に表示） -->
+        <form id="loginForm" style="display:flex; gap:8px; align-items:center;">
+          <input id="loginUser" class="input" type="text" placeholder="username" autocomplete="username" style="width:140px;">
+          <input id="loginPass" class="input" type="password" placeholder="password" autocomplete="current-password" style="width:140px;">
+          <button class="btn primary" type="submit">ログイン</button>
+        </form>
+
+        <!-- ★ログアウトボタン（ログイン時に表示） -->
+        <button class="btn ghost" id="logoutBtn" type="button" style="display:none;">ログアウト</button>
+
+        <a class="btn ghost" href="index.html">一覧に戻る</a>
+        <a class="btn primary" id="editLinkTop" href="new.html">編集</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 id="ideaTitle">（タイトル）</h1>
+        <p id="ideaSubtitle">（サブタイトル）</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="split">
+        <article class="panel">
+          <h3>アイデア本文</h3>
+          <div id="ideaBody"></div>
+          <div class="badges" id="ideaTags" style="margin-top:12px;"></div>
+
+          <div class="form-actions" style="justify-content:space-between;">
+            <a class="btn" href="index.html">← 一覧</a>
+
+            <div style="display:flex; gap:10px; align-items:center;">
+              <a class="btn" id="editLink" href="new.html">編集</a>
+
+              <!-- ★いいねUI（detail.jsが data-idea-id / 表示 / disabled を制御） -->
+              <button class="btn like-btn" type="button" aria-label="いいね">
+                ♥ いいね <span class="badge like-count">0</span>
+              </button>
+
+              <button class="btn danger" id="deleteBtn" type="button">削除</button>
+            </div>
+          </div>
+        </article>
+
+        <div class="metaCard">
+          <div class="row">
+            <div class="k">状態</div>
+            <div class="v" id="statusVal">-</div>
+          </div>
+
+          <div class="row">
+            <div class="k">作成日</div>
+            <div class="v" id="createdVal">-</div>
+          </div>
+
+          <div class="row">
+            <div class="k">最終更新</div>
+            <div class="v" id="updatedVal">-</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <footer>© IdeaShelf</footer>
+  </main>
+
+  <!-- ✅ detail.js はこのパスに置く：/product/js/detail.js（あなたの構成前提） -->
+  <script type="module" src="js/detail.js"></script>
+
+  <!-- ★ログイン用の最小JS（このページだけで完結） -->
+  <script>
+    const API_BASE = ""; // 同一オリジン
+    const $ = (sel) => document.querySelector(sel);
+
+    async function api(path, opts = {}) {
+      const res = await fetch(API_BASE + path, { credentials: "same-origin", ...opts });
+      return res;
+    }
+
+    async function refreshAuthUI() {
+      const statusEl = $("#authStatus");
+      const form = $("#loginForm");
+      const logoutBtn = $("#logoutBtn");
+
+      try {
+        const res = await api("/api/me");
+        const me = await res.json().catch(() => ({ userId: null }));
+
+        if (me.userId) {
+          statusEl.textContent = `ログイン中 (userId: ${me.userId})`;
+          form.style.display = "none";
+          logoutBtn.style.display = "";
+        } else {
+          statusEl.textContent = "未ログイン";
+          form.style.display = "";
+          logoutBtn.style.display = "none";
+        }
+      } catch {
+        statusEl.textContent = "未ログイン";
+        form.style.display = "";
+        logoutBtn.style.display = "none";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // ログイン送信
+      $("#loginForm")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const u = $("#loginUser")?.value?.trim();
+        const p = $("#loginPass")?.value;
+
+        if (!u || !p) {
+          alert("username と password を入力してね");
+          return;
+        }
+
+        const res = await api("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p }),
+        });
+
+        if (!res.ok) {
+          alert("ログイン失敗: " + (await res.text()));
+          return;
+        }
+
+        $("#loginPass").value = "";
+        await refreshAuthUI();
+        location.reload();
+      });
+
+      // ログアウト
+      $("#logoutBtn")?.addEventListener("click", async () => {
+        await api("/api/logout", { method: "POST" });
+        await refreshAuthUI();
+        location.reload();
+      });
+
+      refreshAuthUI();
+    });
+  </script>
+  <script type="module" src="js/detail.js"></script>
+</body>
+</html>

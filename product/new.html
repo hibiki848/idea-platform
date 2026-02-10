@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IdeaShelf | 新規投稿</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="index.html">
+        <span class="logo" aria-hidden="true"></span>
+        <span>IdeaShelf</span>
+      </a>
+      <div class="nav-actions">
+        <a class="btn ghost" id="backLink" href="index.html">一覧に戻る</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 id="pageH1">新規投稿</h1>
+        <p id="pageLead">タグをつけるとわかりやすいよ！</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <form class="form">
+        <div class="field">
+          <label for="title">商品名</label>
+          <input id="title" class="input" type="text" placeholder="例：睡眠を助けるハーブ炭酸" />
+        </div>
+        
+        <div class="field">
+          <label for="subtitle">サブタイトル</label>
+          <input id="subtitle" class="input" type="text" placeholder="例：牛乳嫌いを色で解決" />
+          <div class="help">短い補足やキャッチコピー（任意）</div>
+        </div>
+
+
+        <div class="field">
+          <label for="desc">商品アイデア</label>
+          <textarea id="desc" class="input" placeholder="誰のどんな悩みを、どう解決する？ 使うシーン、特徴、差別化…"></textarea>
+          <div class="help">ヒント：ターゲット / 課題 / 解決方法 / 競合との差 / 収益化 など</div>
+        </div>
+
+        <div class="field">
+          <label for="tags">タグ</label>
+          <input id="tags" class="input" type="text" placeholder="例：健康, 飲料, 夜（カンマ区切り）" />
+        </div>
+
+        <div class="field">
+          <label for="status">公開状態</label>
+          <select id="status" class="select">
+            <option value="draft">下書き</option>
+            <option value="published">公開</option>
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <a class="btn" id="cancelLink" href="index.html">キャンセル</a>
+          <button class="btn primary" id="saveBtn" type="button">保存</button>
+        </div>
+      </form>
+    </section>
+
+    <footer>© IdeaShelf</footer>
+  </main>
+
+  <script type="module" src="./js/new.js"></script>
+</body>
+</html>

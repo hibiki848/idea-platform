@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IdeaShelf | マイページ</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+  /* マイページ全体のカードを大きく */
+  main.container > .card {
+    padding: 22px;
+    border-radius: 18px;
+  }
+
+  /* 見出しも少し大きく */
+  main.container > .card h2 {
+    font-size: 1.25rem;
+    margin-top: 0;
+  }
+
+  /* 小さめ文字（ログイン中〜など）を読みやすく */
+  main.container > .card .small {
+    font-size: 0.98rem;
+  }
+
+  /* 「自分のアイデア」内の各アイデアカードはさらに大きく */
+  #myIdeasGrid .card {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  /* 余白感アップ（カード同士の間隔） */
+  #myIdeasGrid {
+    gap: 16px;
+  }
+</style>
+
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="index.html">
+        <span class="logo" aria-hidden="true"></span>
+        <span>IdeaShelf</span>
+      </a>
+
+      <div class="nav-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <a class="btn ghost" href="index.html">一覧</a>
+        <a class="btn primary" href="new.html">＋ 新規投稿</a>
+        <button class="btn ghost" id="logoutBtn" type="button">ログアウト</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1>マイページ</h1>
+        <p class="small" style="opacity:.85;">アカウント情報と設定</p>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2 style="margin-top:0;">アカウント</h2>
+      <div id="meBox" class="small" style="opacity:.9;">読み込み中...</div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+        <h2 style="margin-top:0;">自分のアイデア</h2>
+        <div id="myIdeasGrid" class="grid"></div>
+        <p id="myIdeasEmpty" class="small" style="opacity:.7; display:none; margin-top:10px;">
+            まだ投稿がありません。
+        </p>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2 style="margin-top:0;">注意</h2>
+      <p class="small" style="opacity:.85; margin-top:6px;">
+        アカウントを削除すると、あなたの投稿と、あなたに紐づくデータが削除されます。
+      </p>
+
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+        <input id="confirmText" class="input" type="text" placeholder='DELETE と入力'
+               style="width:180px;">
+        <button id="deleteBtn" class="btn" type="button" disabled>アカウント削除</button>
+      </div>
+
+      <p class="small" style="opacity:.7; margin-top:10px;">
+        ※誤操作防止のため、DELETE と入力するとボタンが有効になります。
+      </p>
+    </section>
+  </main>
+
+  <script>
+    async function getMe() {
+      const r = await fetch("/api/me");
+      return await r.json();
+    }
+
+    async function ensureLogin() {
+      const me = await getMe();
+      if (!me.loggedIn) {
+        alert("ログインしてください");
+        location.href = "/index.html";
+        return null;
+      }
+      document.getElementById("meBox").textContent =
+        `ログイン中: ${me.username} (id:${me.userId})`;
+      return me;
+    }
+
+    document.getElementById("logoutBtn").onclick = async () => {
+      await fetch("/api/logout", { method: "POST" });
+      location.href = "/index.html";
+    };
+
+    const confirmText = document.getElementById("confirmText");
+    const deleteBtn = document.getElementById("deleteBtn");
+
+    confirmText.addEventListener("input", () => {
+      deleteBtn.disabled = (confirmText.value !== "DELETE");
+    });
+
+    deleteBtn.onclick = async () => {
+      const ok = confirm("本当にアカウントを削除しますか？取り消しできません。");
+      if (!ok) return;
+
+      const r = await fetch("/api/account", { method: "DELETE" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return alert(j.error || "削除に失敗しました");
+
+      alert("アカウントを削除しました");
+      location.href = "/index.html";
+    };
+
+    ensureLogin();
+    function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+function renderMyIdeas(items) {
+  const grid = document.getElementById("myIdeasGrid");
+  const empty = document.getElementById("myIdeasEmpty");
+
+  if (!items || items.length === 0) {
+    grid.innerHTML = "";
+    empty.style.display = "";
+    return;
+  }
+  empty.style.display = "none";
+
+  grid.innerHTML = items.map((it) => `
+    <article class="card">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+        <div>
+          <h3 style="margin:0 0 6px 0;">${escapeHtml(it.product_name)}</h3>
+          ${it.subtitle ? `<p class="small" style="opacity:.8; margin:0 0 8px 0;">${escapeHtml(it.subtitle)}</p>` : ""}
+        </div>
+        <div class="small" style="white-space:nowrap; opacity:.85;">
+          ♡ ${Number(it.like_count ?? 0)}
+        </div>
+      </div>
+
+      <p class="small" style="opacity:.85; margin:0 0 10px 0;">
+        ${escapeHtml((it.idea_text ?? "").slice(0, 120))}${(it.idea_text ?? "").length > 120 ? "…" : ""}
+      </p>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <span class="small" style="opacity:.7;">${escapeHtml(it.status ?? "draft")}</span>
+        <span class="small" style="opacity:.7;">${escapeHtml(it.created_at ?? "")}</span>
+        <div class="my-idea-actions">
+          <a class="btn ghost" href="detail.html?id=${it.id}">開く</a>
+          <a class="btn" href="edit.html?id=${it.id}">編集</a>
+        </div>
+      </div>
+    </article>
+  `).join("");
+}
+
+async function loadMyIdeas() {
+  const r = await fetch("/api/my/ideas");
+  const data = await r.json();
+  if (!r.ok) throw new Error(data?.error || "failed");
+  renderMyIdeas(data);
+}
+ensureLogin().then(() => loadMyIdeas()).catch(() => {});
+
+  </script>
+</body>
+</html>

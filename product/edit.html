@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IdeaShelf | 編集</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="index.html">
+        <span class="logo" aria-hidden="true"></span>
+        <span>IdeaShelf</span>
+      </a>
+      <div class="nav-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <a class="btn ghost" href="index.html">一覧</a>
+        <a class="btn ghost" id="backToDetail" href="index.html">詳細へ戻る</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1>編集</h1>
+        <p class="small" style="opacity:.85;">投稿内容を更新できます</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <form id="editForm" class="form">
+        <label class="label">商品名</label>
+        <input id="product_name" class="input" required />
+
+        <label class="label">サブタイトル</label>
+        <input id="subtitle" class="input" />
+
+        <label class="label">本文</label>
+        <textarea id="idea_text" class="textarea" rows="6" required></textarea>
+
+        <label class="label">タグ</label>
+        <input id="tags" class="input" />
+
+        <label class="label">状態</label>
+        <select id="status" class="select">
+          <option value="draft">下書き</option>
+          <option value="published">公開</option>
+        </select>
+
+        <div class="form-actions" style="margin-top:14px;">
+          <button class="btn primary" type="submit">保存</button>
+          <a class="btn ghost" id="cancelBtn" href="index.html">キャンセル</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get("id");
+    if (!id) alert("URLにIDがありません");
+
+    const backToDetail = document.getElementById("backToDetail");
+    const cancelBtn = document.getElementById("cancelBtn");
+    if (backToDetail) backToDetail.href = `detail.html?id=${encodeURIComponent(id)}`;
+    if (cancelBtn) cancelBtn.href = `detail.html?id=${encodeURIComponent(id)}`;
+
+    async function api(path, opts = {}) {
+      return fetch(path, { credentials: "same-origin", ...opts });
+    }
+
+    async function load() {
+      const r = await api(`/api/ideas/${id}`);
+      const idea = await r.json();
+      if (!r.ok) return alert(idea.error || "読み込み失敗");
+
+      document.getElementById("product_name").value = idea.product_name ?? "";
+      document.getElementById("subtitle").value = idea.subtitle ?? "";
+      document.getElementById("idea_text").value = idea.idea_text ?? "";
+      document.getElementById("tags").value = idea.tags ?? "";
+      document.getElementById("status").value = idea.status ?? "draft";
+    }
+
+    document.getElementById("editForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const body = {
+        product_name: document.getElementById("product_name").value.trim(),
+        subtitle: document.getElementById("subtitle").value.trim() || null,
+        idea_text: document.getElementById("idea_text").value.trim(),
+        tags: document.getElementById("tags").value.trim() || null,
+        status: document.getElementById("status").value,
+      };
+
+      const r = await api(`/api/ideas/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return alert(j.error || "保存失敗");
+
+      location.href = `detail.html?id=${encodeURIComponent(id)}`;
+    });
+
+    load();
+  </script>
+</body>
+</html>
