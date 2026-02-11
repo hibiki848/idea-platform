@@ -537,3 +537,76 @@ button{
 .action-row .btn{
   flex:1;
 }
+
+/* =========================
+   Mobile header: ボタンを横一列に整列
+   ========================= */
+@media (max-width: 560px) {
+  /* ヘッダー全体：左(ロゴ) / 右(ボタン群) の2列 */
+  header .container.nav {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ロゴは縮みすぎない */
+  header .brand {
+    min-width: 140px;
+  }
+
+  /* 右側：ボタン群を横一列に */
+  header .nav-actions {
+    display: flex;
+    flex-wrap: nowrap;              /* 1列固定 */
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+
+    overflow-x: auto;               /* 入りきらなければ横スクロール */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;          /* Firefox */
+  }
+  header .nav-actions::-webkit-scrollbar { display: none; }
+
+  /* ボタンのサイズ調整（横幅節約） */
+  header .nav-actions .btn,
+  header .nav-actions button.btn,
+  header .nav-actions a.btn {
+    padding: 10px 12px;
+    font-size: 14px;
+    border-radius: 14px;
+    white-space: nowrap;            /* ボタン内で改行させない */
+  }
+
+  /* 「ログイン中: hibi」みたいなテキストがあるなら詰める/省略 */
+  header .nav-actions .login-state,
+  header .nav-actions .muted,
+  header .nav-actions .small {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+}
+
+/* =========================
+   ヒーロー文言：変なところで折れない（日本語向け）
+   ========================= */
+.hero h1,
+.hero p {
+  word-break: keep-all;   /* 日本語をできるだけ単語途中で割らない */
+  line-break: strict;
+  text-wrap: balance;     /* 対応ブラウザで改行バランス改善 */
+}
+
+/* ヒーローの見出し/説明を1行に固定（はみ出したら横スクロール or 省略） */
+.hero h1,
+.hero p {
+  white-space: nowrap;          /* 改行させない */
+  overflow-x: auto;             /* 長ければ横スクロール */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.hero h1::-webkit-scrollbar,
+.hero p::-webkit-scrollbar { display: none; }
