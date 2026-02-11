@@ -247,19 +247,62 @@ app.get("/api/my/ideas", requireLogin, async (req, res) => {
 app.post("/api/ideas", requireLogin, async (req, res) => {
   try {
     const userId = req.session.userId;
-    const { product_name, subtitle, description, category } = req.body || {};
+
+    // フロントが送る名前に合わせる
+    const { product_name, subtitle, idea_text, tags, status } = req.body || {};
 
     if (!product_name) return res.status(400).json({ error: "product_name required" });
+    if (!idea_text) return res.status(400).json({ error: "idea_text required" });
 
     const [result] = await db.query(
-      "INSERT INTO ideas (user_id, product_name, subtitle, description, category) VALUES (?, ?, ?, ?, ?)",
-      [userId, product_name, subtitle ?? null, description ?? "", category ?? ""]
+      `INSERT INTO ideas (user_id, product_name, subtitle, idea_text, tags, status)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        product_name,
+        subtitle ?? null,
+        idea_text ?? "",
+        tags ?? null,
+        status ?? "draft",
+      ]
     );
 
     res.json({ ok: true, id: result.insertId });
   } catch (e) {
     console.error("POST /api/ideas error:", e);
     res.status(500).json({ error: "DB insert failed" });
+  }
+});
+
+// 編集（ログイン + 所有者のみ）
+app.put("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid id" });
+
+    const { product_name, subtitle, idea_text, tags, status } = req.body || {};
+
+    if (!product_name) return res.status(400).json({ error: "product_name required" });
+    if (!idea_text) return res.status(400).json({ error: "idea_text required" });
+
+    await db.query(
+      `UPDATE ideas
+       SET product_name = ?, subtitle = ?, idea_text = ?, tags = ?, status = ?
+       WHERE id = ?`,
+      [
+        product_name,
+        subtitle ?? null,
+        idea_text ?? "",
+        tags ?? null,
+        status ?? "draft",
+        id,
+      ]
+    );
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("PUT /api/ideas/:id error:", e);
+    res.status(500).json({ error: "DB update failed" });
   }
 });
 
