@@ -54,12 +54,21 @@ function requireLogin(req, res, next) {
 
 async function requireOwner(req, res, next) {
   try {
-    const id = Number(req.params.id);
+    const id = req.params.id;
     const userId = req.session?.userId;
 
+    // ① 自分が管理者か？
+    const [[me]] = await db.query("SELECT is_admin FROM users WHERE id=? LIMIT 1", [userId]);
+    const isAdmin = Boolean(me && Number(me.is_admin) === 1);
+
+    // ② 投稿の所有者を確認
     const [[row]] = await db.query("SELECT user_id FROM ideas WHERE id=? LIMIT 1", [id]);
     if (!row) return res.status(404).json({ error: "idea not found" });
-    if (Number(row.user_id) !== Number(userId)) return res.status(403).json({ error: "forbidden" });
+
+    // ③ 管理者ならOK、管理者じゃなければ所有者のみ
+    if (!isAdmin && Number(row.user_id) !== Number(userId)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
 
     next();
   } catch (e) {
