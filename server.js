@@ -247,13 +247,14 @@ app.get("/api/my/ideas", requireLogin, async (req, res) => {
 app.post("/api/ideas", requireLogin, async (req, res) => {
   try {
     const userId = req.session.userId;
-    const { product_name, description, category } = req.body || {};
+    const { product_name, subtitle, description, category } = req.body || {};
 
     if (!product_name) return res.status(400).json({ error: "product_name required" });
 
     const [result] = await db.query(
-      "INSERT INTO ideas (user_id, product_name, description, category) VALUES (?, ?, ?, ?)",
-      [userId, product_name, description ?? "", category ?? ""]
+    "INSERT INTO ideas (user_id, product_name, subtitle, description, category) VALUES (?, ?, ?, ?, ?)",
+    [userId, product_name, subtitle ?? "", description ?? "", category ?? ""]
+
     );
 
     res.json({ ok: true, id: result.insertId });
