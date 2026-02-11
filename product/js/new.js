@@ -1,8 +1,10 @@
 // product/js/new.js
 console.log("new.js loaded");
 
-// ★同一オリジンで叩く（Railwayで安全）
+// 同一オリジンで叩く
 const API_BASE = "";
+
+const $ = (sel) => document.querySelector(sel);
 
 function parseTagsInput(value) {
   return String(value ?? "")
@@ -42,9 +44,8 @@ async function createIdea(payload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  if (res.status === 401) throw new Error("login required");
-  if (!res.ok) throw new Error(data?.error || "create failed");
-  return data; // {ok:true, id}
+  if (!res.ok) throw new Error(data?.error || (await res.text()));
+  return data; // {ok,id}
 }
 
 async function updateIdea(id, payload) {
@@ -52,32 +53,30 @@ async function updateIdea(id, payload) {
     method: "PUT",
     body: JSON.stringify(payload),
   });
-  if (res.status === 401) throw new Error("login required");
-  if (res.status === 403) throw new Error("forbidden");
-  if (!res.ok) throw new Error(data?.error || "update failed");
+  if (!res.ok) throw new Error(data?.error || (await res.text()));
   return data; // {ok:true}
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-  const titleEl = document.querySelector("#title");
-  const subtitleEl = document.querySelector("#subtitle");
-  const descEl = document.querySelector("#desc");
-  const tagsEl = document.querySelector("#tags");
-  const statusEl = document.querySelector("#status");
-  const saveBtn = document.querySelector("#saveBtn");
+  const titleEl = $("#title");
+  const subtitleEl = $("#subtitle");
+  const descEl = $("#desc");
+  const tagsEl = $("#tags");
+  const statusEl = $("#status");
+  const saveBtn = $("#saveBtn");
 
-  const pageH1 = document.querySelector("#pageH1");
-  const pageLead = document.querySelector("#pageLead");
+  const pageH1 = $("#pageH1");
+  const pageLead = $("#pageLead");
 
   const id = new URLSearchParams(location.search).get("id");
   const isEdit = !!id;
 
   if (!titleEl || !descEl || !tagsEl || !saveBtn) {
-    alert("new.html のフォーム要素IDが見つかりません（#title/#desc/#tags/#saveBtn）");
+    alert("フォーム要素が見つかりません（idが違うかも）");
     return;
   }
 
-  // 編集モードなら既存データを読み込んでフォームに反映
+  // 編集モードなら読み込み
   if (isEdit) {
     if (pageH1) pageH1.textContent = "編集";
     if (pageLead) pageLead.textContent = "内容を更新して保存できます。";
@@ -86,14 +85,14 @@ window.addEventListener("DOMContentLoaded", async () => {
       const idea = await fetchIdea(id);
       titleEl.value = idea.product_name ?? "";
       if (subtitleEl) subtitleEl.value = idea.subtitle ?? "";
+      // ★本文は idea_text
       descEl.value = idea.idea_text ?? "";
       tagsEl.value = idea.tags ?? "";
       if (statusEl) statusEl.value = idea.status ?? "draft";
     } catch (e) {
       console.error(e);
       alert("読み込みに失敗: " + e.message);
-      location.href = "index.html";
-      return;
+      return; // 戻さない（原因見えるように）
     }
   } else {
     if (statusEl && !statusEl.value) statusEl.value = "draft";
@@ -102,12 +101,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   saveBtn.addEventListener("click", async () => {
     const product_name = titleEl.value.trim();
     const subtitle = subtitleEl ? subtitleEl.value.trim() : "";
-    const idea_text = descEl.value.trim();
+    const idea_text = descEl.value.trim(); // ★本文
     const tags = parseTagsInput(tagsEl.value);
     const status = statusEl ? String(statusEl.value || "draft") : "draft";
 
     if (!product_name) return alert("商品名を入力してね");
-    if (!idea_text) return alert("商品アイデア（本文）を入力してね");
+    if (!idea_text) return alert("商品アイデアを入力してね");
 
     saveBtn.disabled = true;
     const oldText = saveBtn.textContent;
@@ -117,9 +116,9 @@ window.addEventListener("DOMContentLoaded", async () => {
       const payload = {
         product_name,
         subtitle: subtitle || null,
-        idea_text,
+        idea_text,          // ★サーバーはこれを必須にしてる
         tags: tags || null,
-        status,
+        status,             // draft/published
       };
 
       if (isEdit) {
@@ -131,14 +130,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
     } catch (e) {
       console.error(e);
-
-      if (e.message === "login required") {
-        alert("ログインしてください");
-      } else if (e.message === "forbidden") {
-        alert("編集できません（所有者のみ）");
-      } else {
-        alert("保存に失敗: " + e.message);
-      }
+      // ★「ログインしてください」固定はやめる（400の原因が見えなくなる）
+      alert("保存に失敗: " + e.message);
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = oldText;
