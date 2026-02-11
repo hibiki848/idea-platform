@@ -13,6 +13,12 @@
   --r:16px;
   --shadow: 0 12px 40px rgba(0,0,0,.35);
   --max: 1100px;
+
+  /* mobile ui vars */
+  --tap-min: 44px;
+  --gap-s: 10px;
+  --gap-m: 12px;
+  --radius: 12px;
 }
 
 *{ box-sizing:border-box; }
@@ -49,6 +55,7 @@ header{
   padding:14px 0;
   gap:12px;
 }
+
 .brand{
   display:flex;
   align-items:center;
@@ -56,14 +63,18 @@ header{
   font-weight:800;
   letter-spacing:.2px;
 }
+
 .logo{
   width:34px; height:34px;
   border-radius:12px;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   box-shadow: 0 10px 30px rgba(122,162,255,.22);
 }
+
 .nav-actions{
-  display:flex; gap:10px; align-items:center;
+  display:flex;
+  gap:10px;
+  align-items:center;
 }
 
 .btn{
@@ -77,7 +88,9 @@ header{
   background: rgba(255,255,255,.04);
   color:var(--text);
   font-weight:650;
+  white-space: nowrap; /* 改行しない */
 }
+
 .btn:hover{ background: rgba(255,255,255,.07); }
 .btn.primary{
   border:0;
@@ -85,14 +98,15 @@ header{
   color:#071023;
 }
 .btn.primary:hover{ filter: brightness(1.05); }
-.btn.ghost{
-  background: transparent;
-}
+.btn.ghost{ background: transparent; }
+
 .btn.danger{
   border:1px solid rgba(255,91,122,.35);
   background: rgba(255,91,122,.12);
   color:#ffd7df;
 }
+.btn.danger{ border-color: #e5484d; color: #e5484d; }
+.btn.danger:hover{ background: rgba(229, 72, 77, 0.08); }
 
 main{ padding: 22px 0 48px; }
 
@@ -113,6 +127,7 @@ main{ padding: 22px 0 48px; }
   color: var(--muted);
 }
 
+/* カード */
 .card{
   background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
   border: 1px solid var(--line);
@@ -134,21 +149,24 @@ main{ padding: 22px 0 48px; }
   flex-wrap:wrap;
   width:100%;
 }
+
 .input, .select{
   background: rgba(255,255,255,.04);
   border:1px solid var(--line);
-  color: var(--text);
+  color: #f2f2f2;
   padding:10px 12px;
   border-radius:12px;
   outline:none;
 }
-.input::placeholder{ color: rgba(231,236,255,.45); }
+.input::placeholder{ color: #bdbdbd; opacity: 1; }
 .input:focus, .select:focus{
   border-color: rgba(122,162,255,.6);
   box-shadow: 0 0 0 4px rgba(122,162,255,.14);
 }
+select option { color:#111; }
 .input.wide{ flex: 1; min-width: 220px; }
 
+/* 一覧 grid */
 .grid{
   display:grid;
   grid-template-columns: repeat(3, 1fr);
@@ -158,6 +176,7 @@ main{ padding: 22px 0 48px; }
 @media (max-width: 980px){ .grid{ grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px){ .grid{ grid-template-columns: 1fr; } }
 
+/* idea card */
 .idea{
   background: rgba(16,26,51,.55);
   border:1px solid var(--line);
@@ -191,6 +210,8 @@ main{ padding: 22px 0 48px; }
   padding:4px 8px;
   border-radius: 999px;
 }
+.badge.muted{ opacity:.6; }
+
 .snippet{
   color: rgba(231,236,255,.78);
   line-height:1.55;
@@ -205,11 +226,13 @@ main{ padding: 22px 0 48px; }
   padding-top:10px;
   border-top: 1px solid var(--line);
 }
+
 .small{
   font-size:12px;
   color: var(--muted);
 }
 
+/* form */
 .form{
   padding: 16px;
   display:grid;
@@ -239,6 +262,7 @@ textarea{
   border-top: 1px solid var(--line);
 }
 
+/* detail split */
 .split{
   display:grid;
   grid-template-columns: 1.2fr .8fr;
@@ -254,10 +278,8 @@ textarea{
   border-radius: 14px;
 }
 .panel h3{ margin:0 0 10px; font-size: 16px; }
-.kv{
-  display:grid;
-  gap: 8px;
-}
+
+.kv{ display:grid; gap: 8px; }
 .kv div{
   display:flex;
   justify-content:space-between;
@@ -274,29 +296,6 @@ footer{
   text-align:center;
 }
 
-.badge.muted {
-  opacity: 0.6;
-}
-
-.btn.danger {
-  border-color: #e5484d;
-  color: #e5484d;
-}
-.btn.danger:hover {
-  background: rgba(229, 72, 77, 0.08);
-}
-
-.select,
-.input {
-  color: #f2f2f2;
-}
-select option {
-  color: #111; /* optionはOSのドロップダウンが白背景になりがちなので黒 */
-}
-.input::placeholder {
-  color: #bdbdbd;
-  opacity: 1;
-}
 /* ===== Detail meta card (status / dates) ===== */
 .metaCard{
   border: 1px solid rgba(255,255,255,.10);
@@ -316,7 +315,6 @@ select option {
   padding: 10px 8px;
   border-top: 1px solid rgba(255,255,255,.08);
 }
-
 .metaCard .row:first-child{
   border-top: none;
   padding-top: 6px;
@@ -350,7 +348,6 @@ select option {
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(0,0,0,.15);
 }
-
 .metaDot{
   width: 8px;
   height: 8px;
@@ -358,37 +355,30 @@ select option {
   display: inline-block;
   background: rgba(255,255,255,.55);
 }
-
 .metaStatus.pub{
   background: rgba(34,197,94,.12);
   border-color: rgba(34,197,94,.28);
 }
-
-.metaStatus.pub .metaDot{
-  background: rgba(34,197,94,.9);
-}
+.metaStatus.pub .metaDot{ background: rgba(34,197,94,.9); }
 
 .metaStatus.draft{
   background: rgba(251,191,36,.12);
   border-color: rgba(251,191,36,.30);
 }
+.metaStatus.draft .metaDot{ background: rgba(251,191,36,.95); }
 
-.metaStatus.draft .metaDot{
-  background: rgba(251,191,36,.95);
-}
-
-/* date style */
 .metaDate{
   font-variant-numeric: tabular-nums;
   opacity: .92;
 }
+
 #ideaTitle{ margin-bottom: 0; }
 #ideaSubtitle:empty{ display:none; }
 
 /* 本文欄（textarea）もダークUIに合わせる */
 .textarea,
 textarea.input,
-textarea {
+textarea{
   background: rgba(255,255,255,0.06);
   color: inherit;
   border: 1px solid rgba(255,255,255,0.14);
@@ -396,27 +386,14 @@ textarea {
   padding: 12px 14px;
   outline: none;
 }
-
 .textarea:focus,
-textarea:focus {
+textarea:focus{
   border-color: rgba(255,255,255,0.28);
 }
 
 /* =========================
-   Mobile UI: Buttons layout pack
-   - new.html : .form-actions（キャンセル/保存）
-   - index.html : .idea .footer（いいね/詳細）
-   - detail.html : 上部/下部の操作ボタン（編集/削除/いいね）
+   Mobile UI: tap targets
    ========================= */
-
-:root{
-  --tap-min: 44px;
-  --gap-s: 10px;
-  --gap-m: 12px;
-  --radius: 12px;
-}
-
-/* 押しやすさ共通 */
 .btn,
 .like-btn,
 button{
@@ -425,264 +402,136 @@ button{
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 文字がはみ出しにくい */
-.btn{
-  white-space: nowrap;
-}
-
-/* =========================
-   1) new.html（キャンセル/保存）
-   ========================= */
+/* new.html（キャンセル/保存） */
 .form-actions{
-  display: flex;
+  display:flex;
   gap: var(--gap-s);
-  align-items: center;
+  align-items:center;
 }
-
 .form-actions .btn{
   flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
 }
-
-/* 超狭い端末だけ縦並び */
 @media (max-width: 360px){
-  .form-actions{
-    flex-direction: column;
-  }
-  .form-actions .btn{
-    width: 100%;
-  }
+  .form-actions{ flex-direction: column; }
+  .form-actions .btn{ width:100%; }
 }
 
-/* =========================
-   2) index.html（一覧カードの下：いいね/詳細）
-   ========================= */
-
-/* index.jsで .footer に inline style があっても、できるだけ上書き */
+/* index.html（一覧カードの下：いいね/詳細） */
 .idea .footer{
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
   gap: var(--gap-s) !important;
-  flex-wrap: wrap; /* スマホで折り返す */
+  flex-wrap: wrap; /* 狭ければ折り返し */
 }
-
-/* いいね（span.like-btn）をボタンっぽく */
 .idea .footer .like-btn{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  user-select: none;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 10px;
+  border-radius:999px;
+  user-select:none;
 }
-
-/* 右側の「詳細を見る」ボタンを押しやすく */
 .idea .footer .btn{
   min-height: 40px;
   padding: 10px 12px;
 }
-
-/* スマホは「詳細」を右寄せ、折り返しても綺麗に */
 @media (max-width: 420px){
-  .idea .footer .btn{
-    margin-left: auto;
-  }
+  .idea .footer .btn{ margin-left:auto; }
 }
 
-/* =========================
-   3) detail.html（編集/削除/いいね など）
-   ========================= */
-
-/* ナビ右側など "ボタンが横に並ぶエリア" を安定させる */
-.nav-actions{
-  display: flex;
-  gap: var(--gap-s);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-/* detail のボタン群が縦に落ちた時も崩れない */
-.nav-actions .btn{
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* スマホではボタンを2列で揃える（編集/削除が並ぶ想定） */
-@media (max-width: 480px){
-  .nav-actions .btn{
-    flex: 1 1 auto;
-  }
-}
-
-/* detail の「削除」ボタンがある場合：押し間違い防止で少し強調（任意） */
-#deleteBtn{
-  min-height: var(--tap-min);
-}
-
-/* detail のいいねボタン（.like-btn がボタン要素の場合も） */
-.like-btn{
-  min-height: var(--tap-min);
-}
-
+/* detail.html：アクションボタン列 */
 .action-row{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
 }
-.action-row .btn{
-  flex:1;
-}
-
-/* =========================
-   Mobile header: ボタンを横一列に整列
-   ========================= */
-@media (max-width: 560px) {
-  /* ヘッダー全体：左(ロゴ) / 右(ボタン群) の2列 */
-  header .container.nav {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 10px;
-  }
-
-  /* ロゴは縮みすぎない */
-  header .brand {
-    min-width: 140px;
-  }
-
-  /* 右側：ボタン群を横一列に */
-  header .nav-actions {
-    display: flex;
-    flex-wrap: nowrap;              /* 1列固定 */
-    gap: 8px;
-    justify-content: flex-end;
-    align-items: center;
-
-    overflow-x: auto;               /* 入りきらなければ横スクロール */
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;          /* Firefox */
-  }
-  header .nav-actions::-webkit-scrollbar { display: none; }
-
-  /* ボタンのサイズ調整（横幅節約） */
-  header .nav-actions .btn,
-  header .nav-actions button.btn,
-  header .nav-actions a.btn {
-    padding: 10px 12px;
-    font-size: 14px;
-    border-radius: 14px;
-    white-space: nowrap;            /* ボタン内で改行させない */
-  }
-
-  /* 「ログイン中: hibi」みたいなテキストがあるなら詰める/省略 */
-  header .nav-actions .login-state,
-  header .nav-actions .muted,
-  header .nav-actions .small {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 120px;
-  }
-}
-
-/* =========================
-   ヒーロー文言：変なところで折れない（日本語向け）
-   ========================= */
-.hero h1,
-.hero p {
-  word-break: keep-all;   /* 日本語をできるだけ単語途中で割らない */
-  line-break: strict;
-  text-wrap: balance;     /* 対応ブラウザで改行バランス改善 */
-}
-
-/* ヒーローの見出し/説明を1行に固定（はみ出したら横スクロール or 省略） */
-.hero h1,
-.hero p {
-  white-space: nowrap;          /* 改行させない */
-  overflow-x: auto;             /* 長ければ横スクロール */
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.hero h1::-webkit-scrollbar,
-.hero p::-webkit-scrollbar { display: none; }
+.action-row .btn{ flex:1; }
+#deleteBtn{ min-height: var(--tap-min); }
+.like-btn{ min-height: var(--tap-min); }
 
 /* ============================
-   Mobile layout fixes
+   Mobile: header buttons 1-row + smaller hero text
+   要望：
+   - ボタン：全部横一列、小さく
+   - 文：文字自体を小さくして画面に入りきるように（1行固定）
    ============================ */
-@media (max-width: 520px) {
+@media (max-width: 520px){
 
-  /* ① まず全体の「左寄り」を直す（containerを100%+中央寄せ） */
+  /* 左寄り/余白の違和感を減らす */
   .container{
     width: 100%;
     max-width: 100%;
     margin: 0 auto;
-    padding-left: 14px;
-    padding-right: 14px;
-    box-sizing: border-box;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-  /* ② ヘッダー：ロゴ行 + ボタン行に分けて、ボタンは2列グリッドで整列 */
+  /* ヘッダー：ロゴ行 + ボタン行 */
   .nav{
-    display: grid;
+    display:grid;
     grid-template-columns: 1fr;
-    row-gap: 10px;
-    align-items: start;
+    row-gap: 8px;
+    align-items:start;
   }
 
-  /* ロゴ（brand）は左、勝手に縮まない */
-  .brand{
-    justify-self: start;
-    min-width: 0;
-  }
-
-  /* ボタン群は「2列」で均等に並べる（一覧 / 新規投稿 / ログアウト / マイページ） */
+  /* ボタン群：横1列固定（入りきらない時は横スクロール） */
   .nav-actions{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    display:flex;
+    align-items:center;
+    gap: 8px;
     width: 100%;
-  }
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
 
-  /* ボタンを100%幅にして揃える */
+    scrollbar-width: none;
+  }
+  .nav-actions::-webkit-scrollbar{ display:none; }
+
+  /* ボタンを小さく */
   .nav-actions .btn,
   .nav-actions button.btn,
   .nav-actions a.btn{
-    width: 100%;
-    justify-content: center;
-    padding: 12px 10px;
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1;
+    border-radius: 12px;
+    white-space: nowrap;
   }
 
-  /* 「ログイン中: hibi」みたいなテキストがあるなら折返し防止 */
+  /* ログイン中表示などは小さく省略 */
   .nav .small,
   .nav small,
   .nav .meta,
   .nav .login-info{
+    font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  /* ③ ヒーロー文：1行にしたい要望（はみ出し防止に…で省略） */
-  .hero h1,
-  .hero p{
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* スマホでは文字が大きすぎるので少し縮める（1行維持しやすい） */
+  /* ヒーロー文：文字を小さく＆1行固定（入り切らなければ…） */
   .hero h1{
-    font-size: 24px;
-    line-height: 1.2;
+    font-size: 18px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .hero p{
-    font-size: 14px;
-    line-height: 1.4;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     opacity: .9;
   }
 }
