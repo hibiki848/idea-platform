@@ -140,10 +140,18 @@ app.get("/api/me", async (req, res) => {
     const userId = req.session?.userId;
     if (!userId) return res.json({ loggedIn: false });
 
-    const [[u]] = await db.query("SELECT id, username FROM users WHERE id=? LIMIT 1", [userId]);
+    const [[u]] = await db.query(
+      "SELECT id, username, is_admin FROM users WHERE id=? LIMIT 1",
+      [userId]
+    );
     if (!u) return res.json({ loggedIn: false });
 
-    res.json({ loggedIn: true, userId: u.id, username: u.username });
+    res.json({
+      loggedIn: true,
+      userId: u.id,
+      username: u.username,
+      isAdmin: Number(u.is_admin) === 1,   // ★追加
+    });
   } catch (e) {
     console.error("GET /api/me error:", e);
     res.json({ loggedIn: false });

@@ -76,25 +76,26 @@ async function loadMe() {
   return data || { loggedIn: false };
 }
 
-// 所有者だけ編集/削除を表示
-function setOwnerOnlyUI({ isOwner }) {
+// ★所有者 or 管理者だけ編集/削除を表示
+function setOwnerOnlyUI({ canEdit }) {
   const editLink = $("#editLink");
   const editLinkTop = $("#editLinkTop");
   const deleteBtn = $("#deleteBtn");
 
-  if (isOwner) {
+  if (canEdit) {
     if (editLink) editLink.style.display = "";
     if (editLinkTop) editLinkTop.style.display = "";
     if (deleteBtn) deleteBtn.style.display = "";
   } else {
+    // 崩さず非表示
     if (editLink) editLink.style.display = "none";
     if (editLinkTop) editLinkTop.style.display = "none";
     if (deleteBtn) deleteBtn.style.display = "none";
   }
 }
 
-// ★ここがUI反映（applyIdeaToUIはこれ1個だけ）
-function applyIdeaToUI(idea, { isOwner }) {
+// ★UI反映（applyIdeaToUIはこれ1個だけ）
+function applyIdeaToUI(idea, { isOwner, isAdmin }) {
   setText("#ideaTitle", idea.product_name ?? "（タイトル）");
   setText("#ideaSubtitle", idea.subtitle ?? "");
 
@@ -115,11 +116,18 @@ function applyIdeaToUI(idea, { isOwner }) {
   setText("#createdVal", formatDate(idea.created_at));
   setText("#updatedVal", formatDate(idea.updated_at));
 
-  // 作成者表示（自分なら you）
-  const authorName = isOwner ? "you" : (idea.author_username ?? "unknown");
+  // 作成者表示
+  // - owner: you
+  // - admin(他人): admin
+  // - 他人: username
+  const authorName = isOwner
+    ? "you"
+    : isAdmin
+    ? "admin"
+    : idea.author_username ?? "unknown";
   setText("#authorVal", authorName);
 
-  // 編集リンク（new.html で編集する想定）
+  // 編集リンク（new.html で編集）
   const editHref = `new.html?id=${encodeURIComponent(idea.id)}`;
   const editLink = $("#editLink");
   const editLinkTop = $("#editLinkTop");
@@ -169,13 +177,14 @@ async function main() {
     const likeBtn = $(".like-btn");
     if (likeBtn) likeBtn.disabled = true;
 
-    setOwnerOnlyUI({ isOwner: false });
+    setOwnerOnlyUI({ canEdit: false });
     return;
   }
 
   // ログイン状態
   const me = await loadMe();
   const loggedIn = !!me?.loggedIn;
+  const isAdmin = Boolean(me?.isAdmin);
 
   // 詳細取得
   const { res, data: idea } = await apiJson(`/api/ideas/${encodeURIComponent(ideaId)}`);
@@ -188,16 +197,19 @@ async function main() {
     const likeBtn = $(".like-btn");
     if (likeBtn) likeBtn.disabled = true;
 
-    setOwnerOnlyUI({ isOwner: false });
+    setOwnerOnlyUI({ canEdit: false });
     return;
   }
 
-  // 所有者判定
+  // 所有者判定 + 管理者判定
   const isOwner = Boolean(loggedIn) && Number(me.userId) === Number(idea.user_id);
-  setOwnerOnlyUI({ isOwner });
+  const canEdit = isOwner || isAdmin;
+
+  // ★管理者でも編集/削除ボタンを出す
+  setOwnerOnlyUI({ canEdit });
 
   // UI反映
-  applyIdeaToUI(idea, { isOwner });
+  applyIdeaToUI(idea, { isOwner, isAdmin });
 
   // いいね情報（初期値）
   let likeCount = Number(idea.like_count ?? 0);
@@ -226,9 +238,10 @@ async function main() {
       // likedByMe に応じて POST/DELETE を切り替える
       const method = likedByMe ? "DELETE" : "POST";
 
-      const { res, data } = await apiJson(`/api/ideas/${encodeURIComponent(ideaId)}/like`, {
-        method,
-      });
+      const { res, data } = await apiJson(
+        `/api/ideas/${encodeURIComponent(ideaId)}/like`,
+        { method }
+      );
 
       if (res.status === 401) {
         alert("ログインしてください");
@@ -262,7 +275,7 @@ async function main() {
     }
   });
 
-  // 削除（所有者のみ）
+  // 削除（所有者 or 管理者）
   $("#deleteBtn")?.addEventListener("click", async () => {
     const meNow = await loadMe();
     if (!meNow?.loggedIn) {
@@ -270,8 +283,11 @@ async function main() {
       return;
     }
 
-    if (Number(meNow.userId) !== Number(idea.user_id)) {
-      alert("削除できません（所有者のみ）");
+    const nowIsAdmin = Boolean(meNow?.isAdmin);
+    const nowIsOwner = Number(meNow.userId) === Number(idea.user_id);
+
+    if (!nowIsOwner && !nowIsAdmin) {
+      alert("削除できません（所有者または管理者のみ）");
       return;
     }
 
@@ -282,7 +298,7 @@ async function main() {
     });
 
     if (res.status === 403) {
-      alert("削除できません（所有者のみ）");
+      alert("削除できません（所有者または管理者のみ）");
       return;
     }
     if (!res.ok) {
