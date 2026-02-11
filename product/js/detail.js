@@ -64,7 +64,10 @@ function setHtml(sel, html) {
 
 function parseTags(tags) {
   if (typeof tags === "string") {
-    return tags.split(/[,、]/).map((s) => s.trim()).filter(Boolean);
+    return tags
+      .split(/[,、]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
   if (Array.isArray(tags)) return tags;
   return [];
@@ -94,21 +97,36 @@ function setOwnerOnlyUI({ isOwner }) {
   }
 }
 
+/**
+ * ★表示の互換対応
+ * - 本文: idea_text がなければ description を表示
+ * - タグ: tags がなければ category をタグっぽく表示（暫定）
+ * - status/updated_at が無い環境でも落ちない
+ */
 function applyIdeaToUI(idea) {
   setText("#ideaTitle", idea.product_name ?? "（タイトル）");
   setText("#ideaSubtitle", idea.subtitle ?? "");
 
-  const body = escapeHtml(idea.idea_text ?? "").replaceAll("\n", "<br>");
-  setHtml("#ideaBody", body || `<div class="help">本文がありません</div>`);
+  // 本文（idea_text優先 → 無ければdescription）
+  const bodyText = idea.idea_text ?? idea.description ?? "";
+  const bodyHtml = escapeHtml(bodyText).replaceAll("\n", "<br>");
+  setHtml("#ideaBody", bodyHtml || `<div class="help">本文がありません</div>`);
 
-  const tags = parseTags(idea.tags);
-  const tagsHtml = tags.length
-    ? tags.map((t) => `<span class="badge">${escapeHtml(t)}</span>`).join("")
+  // タグ（tags優先 → 無ければcategory）
+  const tagsArr = parseTags(idea.tags ?? idea.category ?? "");
+  const tagsHtml = tagsArr.length
+    ? tagsArr.map((t) => `<span class="badge">${escapeHtml(t)}</span>`).join("")
     : `<span class="badge muted">タグなし</span>`;
   setHtml("#ideaTags", tagsHtml);
 
+  // ステータス
   const status = idea.status ?? "-";
-  setText("#statusVal", status === "published" ? "公開" : status === "draft" ? "下書き" : status);
+  setText(
+    "#statusVal",
+    status === "published" ? "公開" : status === "draft" ? "下書き" : String(status)
+  );
+
+  // 日付（無いなら "-"）
   setText("#createdVal", formatDate(idea.created_at));
   setText("#updatedVal", formatDate(idea.updated_at));
 
@@ -168,7 +186,7 @@ async function main() {
   const me = await loadMe();
   const loggedIn = !!me?.loggedIn;
 
-  // 詳細取得（server.jsが like_count/liked_by_me/author_username/user_id を返す）
+  // 詳細取得（server.jsが like_count/liked_by_me/author_username/user_id を返す想定）
   const { res, data: idea } = await apiJson(`/api/ideas/${ideaId}`);
   if (!res.ok || !idea) {
     setText("#ideaTitle", "見つかりませんでした");
@@ -190,12 +208,10 @@ async function main() {
   setOwnerOnlyUI({ isOwner });
 
   // ★作成者表示：自分なら you / 他人なら username
-  // ここで使ってる #authorVal は、あなたの detail.html の作成者表示のIDに合わせてある
-  // もし違うIDなら、あなたの実際のIDに変えてOK
   const authorName = isOwner ? "you" : (idea.author_username ?? "unknown");
   setText("#authorVal", authorName);
 
-  // いいね情報
+  // いいね情報（無い場合も落ちない）
   let likeCount = Number(idea.like_count ?? 0);
   let likedByMe = Boolean(Number(idea.liked_by_me ?? 0));
   setLikeUI({ ideaId, likeCount, likedByMe, loggedIn, isOwner });
@@ -236,8 +252,9 @@ async function main() {
       }
       if (!res.ok) throw new Error(data?.error || "いいねに失敗しました");
 
-      const latest = Number(data?.like_count ?? 0);
-      const likedNow = Boolean(data?.liked);
+      // ★サーバーが like_count / liked を返さない場合もあるので保険
+      const latest = Number(data?.like_count ?? (likeCount + (likedByMe ? -1 : 1)));
+      const likedNow = data?.liked != null ? Boolean(data.liked) : !likedByMe;
 
       likeCount = latest;
       likedByMe = likedNow;
