@@ -530,10 +530,3 @@ button{
     opacity: .9;
   }
 }
-
-.grid{
-  display:grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  padding:14px;
-}
