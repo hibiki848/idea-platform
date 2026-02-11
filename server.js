@@ -167,6 +167,48 @@ app.get("/api/ideas", async (req, res) => {
   }
 });
 
+// ================================
+// Ideas: detail (GET /api/ideas/:id)
+// ================================
+app.get("/api/ideas/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid id" });
+
+    const userId = req.session?.userId ?? null;
+
+    const [rows] = await db.query(
+      `
+      SELECT
+        i.*,
+        u.username AS author_username,
+        COALESCE(lc.like_count, 0) AS like_count,
+        CASE WHEN ul.user_id IS NULL THEN 0 ELSE 1 END AS liked_by_me
+      FROM ideas i
+      LEFT JOIN users u ON u.id = i.user_id
+      LEFT JOIN (
+        SELECT idea_id, COUNT(*) AS like_count
+        FROM likes
+        GROUP BY idea_id
+      ) lc ON lc.idea_id = i.id
+      LEFT JOIN likes ul
+        ON ul.idea_id = i.id AND ul.user_id = ?
+      WHERE i.id = ?
+      LIMIT 1
+      `,
+      [userId, id]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: "not found" });
+
+    res.json(rows[0]);
+  } catch (e) {
+    console.error("GET /api/ideas/:id error:", e);
+    res.status(500).json({ error: "DB read failed" });
+  }
+});
+
+
 // 自分の投稿
 app.get("/api/my/ideas", requireLogin, async (req, res) => {
   try {
