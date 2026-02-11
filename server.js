@@ -252,9 +252,8 @@ app.post("/api/ideas", requireLogin, async (req, res) => {
     if (!product_name) return res.status(400).json({ error: "product_name required" });
 
     const [result] = await db.query(
-    "INSERT INTO ideas (user_id, product_name, subtitle, description, category) VALUES (?, ?, ?, ?, ?)",
-    [userId, product_name, subtitle ?? "", description ?? "", category ?? ""]
-
+      "INSERT INTO ideas (user_id, product_name, subtitle, description, category) VALUES (?, ?, ?, ?, ?)",
+      [userId, product_name, subtitle ?? null, description ?? "", category ?? ""]
     );
 
     res.json({ ok: true, id: result.insertId });
@@ -273,6 +272,40 @@ app.delete("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
   } catch (e) {
     console.error("DELETE /api/ideas/:id error:", e);
     res.status(500).json({ error: "DB delete failed" });
+  }
+});
+
+// 更新（ログイン + 所有者のみ）
+app.put("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid id" });
+
+    const { product_name, subtitle, description, category } = req.body || {};
+    if (!product_name) return res.status(400).json({ error: "product_name required" });
+
+    const [result] = await db.query(
+      `
+      UPDATE ideas
+      SET product_name = ?,
+          subtitle     = ?,
+          description  = ?,
+          category     = ?
+      WHERE id = ?
+      `,
+      [
+        product_name,
+        subtitle ?? null,
+        description ?? "",
+        category ?? "",
+        id,
+      ]
+    );
+
+    res.json({ ok: true, affectedRows: result.affectedRows });
+  } catch (e) {
+    console.error("PUT /api/ideas/:id error:", e);
+    res.status(500).json({ error: "DB update failed" });
   }
 });
 

@@ -60,8 +60,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       const idea = await fetchIdea(id);
       titleEl.value = idea.product_name ?? "";
       if (subtitleEl) subtitleEl.value = idea.subtitle ?? ""; // ★追加
-      descEl.value = idea.idea_text ?? "";
-      tagsEl.value = idea.tags ?? ""; // DBは "a,b,c" 文字列
+      descEl.value = idea.description ?? "";
+      tagsEl.value = idea.category ?? "";
       if (statusEl) statusEl.value = idea.status ?? "draft"; // ★追加
     } catch (e) {
       console.error(e);
@@ -93,10 +93,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     try {
       const payload = {
         product_name,
-        subtitle: subtitle || null, // ★追加
-        idea_text,
-        tags: tags || null,
-        status, // ★追加（公開/下書き）
+        subtitle: subtitle || null,
+        description: idea_text,          // ★ここ！
+        category: tags || "",            // ★ここ！（文字列でOK）
+        // status は今は送らない（サーバー/DBが未対応なら無視されるだけ）
       };
 
       if (isEdit) {
