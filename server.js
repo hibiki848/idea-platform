@@ -2,7 +2,6 @@ console.log("LOADED:", __filename);
 
 const express = require("express");
 const path = require("path");
-const mysql = require("mysql2/promise");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 
@@ -19,24 +18,13 @@ app.use(
     secret: process.env.SESSION_SECRET || "dev-secret",
     resave: false,
     saveUninitialized: false,
+    // Railway(HTTPS)では cookie.secure が効き方変わるので、まずは指定しないのが安全
   })
 );
 
 // ================================
-// DB (Railway MySQL)
+// DB
 // ================================
-const baseUrl = process.env.MYSQL_URL;          // RailwayのMySQL参照
-const dbName = process.env.MYSQL_DATABASE;     // idea_platform など
-
-if (!baseUrl) throw new Error("MYSQL_URL is missing");
-if (!dbName) throw new Error("MYSQL_DATABASE is missing");
-
-// mysql://user:pass@host:port  ← /dbName を足す
-const url = baseUrl.includes("/") ? baseUrl : `${baseUrl}/${dbName}`;
-
-// もし mysql://.../something の形ならDB名を強制的に上書き
-const finalUrl = url.replace(/\/[^/?#]+(\?|#|$)/, `/${dbName}$1`);
-
 const db = require("./db");
 
 // 起動時に接続テスト（ログで原因がすぐ分かる）
@@ -61,12 +49,14 @@ function requireLogin(req, res, next) {
 
 async function requireOwner(req, res, next) {
   try {
-    const id = req.params.id;
+    const id = Number(req.params.id);
     const userId = req.session?.userId;
+
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid id" });
 
     const [[row]] = await db.query("SELECT user_id FROM ideas WHERE id=? LIMIT 1", [id]);
     if (!row) return res.status(404).json({ error: "idea not found" });
-    if (row.user_id !== userId) return res.status(403).json({ error: "forbidden" });
+    if (Number(row.user_id) !== Number(userId)) return res.status(403).json({ error: "forbidden" });
 
     next();
   } catch (e) {
@@ -89,7 +79,6 @@ app.post("/api/register", async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error("POST /api/register error:", e);
-    // username重複など
     res.status(400).json({ error: "register failed" });
   }
 });
@@ -208,8 +197,9 @@ app.get("/api/ideas/:id", async (req, res) => {
   }
 });
 
-
+// ================================
 // 自分の投稿
+// ================================
 app.get("/api/my/ideas", requireLogin, async (req, res) => {
   try {
     const userId = req.session.userId;
@@ -243,13 +233,20 @@ app.get("/api/my/ideas", requireLogin, async (req, res) => {
   }
 });
 
-// 新規投稿
+// ================================
+// 新規投稿（subtitle / idea_text / tags / status 対応）
+// ================================
 app.post("/api/ideas", requireLogin, async (req, res) => {
   try {
     const userId = req.session.userId;
 
-    // フロントが送る名前に合わせる
-    const { product_name, subtitle, idea_text, tags, status } = req.body || {};
+    const {
+      product_name,
+      subtitle = null,
+      idea_text,
+      tags = null,
+      status = "draft",
+    } = req.body || {};
 
     if (!product_name) return res.status(400).json({ error: "product_name required" });
     if (!idea_text) return res.status(400).json({ error: "idea_text required" });
@@ -257,14 +254,7 @@ app.post("/api/ideas", requireLogin, async (req, res) => {
     const [result] = await db.query(
       `INSERT INTO ideas (user_id, product_name, subtitle, idea_text, tags, status)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        userId,
-        product_name,
-        subtitle ?? null,
-        idea_text ?? "",
-        tags ?? null,
-        status ?? "draft",
-      ]
+      [userId, product_name, subtitle, idea_text, tags, status]
     );
 
     res.json({ ok: true, id: result.insertId });
@@ -274,29 +264,30 @@ app.post("/api/ideas", requireLogin, async (req, res) => {
   }
 });
 
-// 編集（ログイン + 所有者のみ）
+// ================================
+// 編集（PUT /api/ideas/:id）
+// ================================
 app.put("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid id" });
 
-    const { product_name, subtitle, idea_text, tags, status } = req.body || {};
+    const {
+      product_name,
+      subtitle = null,
+      idea_text,
+      tags = null,
+      status = "draft",
+    } = req.body || {};
 
     if (!product_name) return res.status(400).json({ error: "product_name required" });
     if (!idea_text) return res.status(400).json({ error: "idea_text required" });
 
     await db.query(
       `UPDATE ideas
-       SET product_name = ?, subtitle = ?, idea_text = ?, tags = ?, status = ?
-       WHERE id = ?`,
-      [
-        product_name,
-        subtitle ?? null,
-        idea_text ?? "",
-        tags ?? null,
-        status ?? "draft",
-        id,
-      ]
+       SET product_name=?, subtitle=?, idea_text=?, tags=?, status=?
+       WHERE id=?`,
+      [product_name, subtitle, idea_text, tags, status, id]
     );
 
     res.json({ ok: true });
@@ -306,10 +297,12 @@ app.put("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
   }
 });
 
+// ================================
 // 削除（ログイン + 所有者のみ）
+// ================================
 app.delete("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
   try {
-    const id = req.params.id;
+    const id = Number(req.params.id);
     const [result] = await db.query("DELETE FROM ideas WHERE id=?", [id]);
     res.json({ ok: true, affectedRows: result.affectedRows });
   } catch (e) {
@@ -318,66 +311,40 @@ app.delete("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
   }
 });
 
-// 更新（ログイン + 所有者のみ）
-app.put("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid id" });
-
-    const { product_name, subtitle, description, category } = req.body || {};
-    if (!product_name) return res.status(400).json({ error: "product_name required" });
-
-    const [result] = await db.query(
-      `
-      UPDATE ideas
-      SET product_name = ?,
-          subtitle     = ?,
-          description  = ?,
-          category     = ?
-      WHERE id = ?
-      `,
-      [
-        product_name,
-        subtitle ?? null,
-        description ?? "",
-        category ?? "",
-        id,
-      ]
-    );
-
-    res.json({ ok: true, affectedRows: result.affectedRows });
-  } catch (e) {
-    console.error("PUT /api/ideas/:id error:", e);
-    res.status(500).json({ error: "DB update failed" });
-  }
-});
-
 // ================================
-// Likes
+// Likes（※あなたのdetail.jsは likeの戻り値に like_count/liked を期待してる）
+// ここを揃えるために、押すたびにトグルする実装にして返す
 // ================================
 app.post("/api/ideas/:id/like", requireLogin, async (req, res) => {
   try {
-    const ideaId = req.params.id;
+    const ideaId = Number(req.params.id);
     const userId = req.session.userId;
 
-    await db.query("INSERT IGNORE INTO likes (user_id, idea_id) VALUES (?, ?)", [userId, ideaId]);
-    res.json({ ok: true });
+    // 自分の投稿にいいね禁止（念のため）
+    const [[own]] = await db.query("SELECT user_id FROM ideas WHERE id=? LIMIT 1", [ideaId]);
+    if (!own) return res.status(404).json({ error: "idea not found" });
+    if (Number(own.user_id) === Number(userId)) return res.status(403).json({ error: "cannot like own idea" });
+
+    // 既にいいねしてる？
+    const [[ex]] = await db.query(
+      "SELECT 1 AS ok FROM likes WHERE user_id=? AND idea_id=? LIMIT 1",
+      [userId, ideaId]
+    );
+
+    let liked;
+    if (ex) {
+      await db.query("DELETE FROM likes WHERE user_id=? AND idea_id=?", [userId, ideaId]);
+      liked = 0;
+    } else {
+      await db.query("INSERT INTO likes (user_id, idea_id) VALUES (?, ?)", [userId, ideaId]);
+      liked = 1;
+    }
+
+    const [[cnt]] = await db.query("SELECT COUNT(*) AS c FROM likes WHERE idea_id=?", [ideaId]);
+    res.json({ ok: true, liked, like_count: Number(cnt?.c ?? 0) });
   } catch (e) {
     console.error("POST /api/ideas/:id/like error:", e);
     res.status(500).json({ error: "like failed" });
-  }
-});
-
-app.delete("/api/ideas/:id/like", requireLogin, async (req, res) => {
-  try {
-    const ideaId = req.params.id;
-    const userId = req.session.userId;
-
-    const [r] = await db.query("DELETE FROM likes WHERE user_id=? AND idea_id=?", [userId, ideaId]);
-    res.json({ ok: true, affectedRows: r.affectedRows });
-  } catch (e) {
-    console.error("DELETE /api/ideas/:id/like error:", e);
-    res.status(500).json({ error: "unlike failed" });
   }
 });
 

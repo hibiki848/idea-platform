@@ -1,5 +1,8 @@
-// ★ここだけ修正：同一オリジンで叩く（Failed to fetch 対策）
-const API_BASE = ""; // 例: "/api/..." でアクセスするため空でOK
+// product/js/new.js
+console.log("new.js loaded");
+
+// ★同一オリジンで叩く（Railwayで安全）
+const API_BASE = "";
 
 function parseTagsInput(value) {
   return String(value ?? "")
@@ -9,40 +12,58 @@ function parseTagsInput(value) {
     .join(",");
 }
 
+async function apiJson(path, opts = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    credentials: "same-origin",
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      ...(opts.headers || {}),
+    },
+  });
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+  return { res, data };
+}
+
 async function fetchIdea(id) {
-  const res = await fetch(
-    `${API_BASE}/api/ideas/${encodeURIComponent(id)}`
-  );
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const { res, data } = await apiJson(`/api/ideas/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(data?.error || (await res.text()));
+  return data;
 }
 
 async function createIdea(payload) {
-  const res = await fetch(`${API_BASE}/api/ideas`, {
+  const { res, data } = await apiJson(`/api/ideas`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json(); // {id}
+  if (res.status === 401) throw new Error("login required");
+  if (!res.ok) throw new Error(data?.error || "create failed");
+  return data; // {ok:true, id}
 }
 
 async function updateIdea(id, payload) {
-  const res = await fetch(`${API_BASE}/api/ideas/${encodeURIComponent(id)}`, {
+  const { res, data } = await apiJson(`/api/ideas/${encodeURIComponent(id)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json(); // {ok:true}
+  if (res.status === 401) throw new Error("login required");
+  if (res.status === 403) throw new Error("forbidden");
+  if (!res.ok) throw new Error(data?.error || "update failed");
+  return data; // {ok:true}
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
   const titleEl = document.querySelector("#title");
-  const subtitleEl = document.querySelector("#subtitle"); // ★追加
+  const subtitleEl = document.querySelector("#subtitle");
   const descEl = document.querySelector("#desc");
   const tagsEl = document.querySelector("#tags");
-  const statusEl = document.querySelector("#status"); // ★追加（公開/下書き）
+  const statusEl = document.querySelector("#status");
   const saveBtn = document.querySelector("#saveBtn");
 
   const pageH1 = document.querySelector("#pageH1");
@@ -50,6 +71,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   const id = new URLSearchParams(location.search).get("id");
   const isEdit = !!id;
+
+  if (!titleEl || !descEl || !tagsEl || !saveBtn) {
+    alert("new.html のフォーム要素IDが見つかりません（#title/#desc/#tags/#saveBtn）");
+    return;
+  }
 
   // 編集モードなら既存データを読み込んでフォームに反映
   if (isEdit) {
@@ -59,10 +85,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     try {
       const idea = await fetchIdea(id);
       titleEl.value = idea.product_name ?? "";
-      if (subtitleEl) subtitleEl.value = idea.subtitle ?? ""; // ★追加
-      descEl.value = idea.description ?? "";
-      tagsEl.value = idea.category ?? "";
-      if (statusEl) statusEl.value = idea.status ?? "draft"; // ★追加
+      if (subtitleEl) subtitleEl.value = idea.subtitle ?? "";
+      descEl.value = idea.idea_text ?? "";
+      tagsEl.value = idea.tags ?? "";
+      if (statusEl) statusEl.value = idea.status ?? "draft";
     } catch (e) {
       console.error(e);
       alert("読み込みに失敗: " + e.message);
@@ -70,21 +96,18 @@ window.addEventListener("DOMContentLoaded", async () => {
       return;
     }
   } else {
-    // 新規の初期値（statusがあれば）
     if (statusEl && !statusEl.value) statusEl.value = "draft";
   }
 
   saveBtn.addEventListener("click", async () => {
     const product_name = titleEl.value.trim();
-    const subtitle = subtitleEl ? subtitleEl.value.trim() : ""; // ★追加
+    const subtitle = subtitleEl ? subtitleEl.value.trim() : "";
     const idea_text = descEl.value.trim();
     const tags = parseTagsInput(tagsEl.value);
-
-    // status（selectがvalueを持ってる前提：draft/published）
     const status = statusEl ? String(statusEl.value || "draft") : "draft";
 
     if (!product_name) return alert("商品名を入力してね");
-    if (!idea_text) return alert("商品アイデアを入力してね");
+    if (!idea_text) return alert("商品アイデア（本文）を入力してね");
 
     saveBtn.disabled = true;
     const oldText = saveBtn.textContent;
@@ -94,9 +117,9 @@ window.addEventListener("DOMContentLoaded", async () => {
       const payload = {
         product_name,
         subtitle: subtitle || null,
-        description: idea_text,          // ★ここ！
-        category: tags || "",            // ★ここ！（文字列でOK）
-        // status は今は送らない（サーバー/DBが未対応なら無視されるだけ）
+        idea_text,
+        tags: tags || null,
+        status,
       };
 
       if (isEdit) {
@@ -108,7 +131,14 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
     } catch (e) {
       console.error(e);
-      alert("ログインしてください: " + e.message);
+
+      if (e.message === "login required") {
+        alert("ログインしてください");
+      } else if (e.message === "forbidden") {
+        alert("編集できません（所有者のみ）");
+      } else {
+        alert("保存に失敗: " + e.message);
+      }
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = oldText;
