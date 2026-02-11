@@ -217,9 +217,68 @@ async function main() {
   setLikeUI({ ideaId, likeCount, likedByMe, loggedIn, isOwner });
 
   // いいねクリック（トグル）
-  const likeBtn = $(".like-btn");
-  likeBtn?.addEventListener("click", async (e) => {
-    e.preventDefault();
+const likeBtn = document.querySelector(".like-btn");
+likeBtn?.addEventListener("click", async (e) => {
+  e.preventDefault();
+
+  // ownerは不可（UI保険）
+  if (isOwner) {
+    alert("自分の投稿にはいいねできません");
+    return;
+  }
+
+  const meNow = await loadMe();
+  if (!meNow?.loggedIn) {
+    alert("ログインしてください");
+    return;
+  }
+
+  likeBtn.disabled = true;
+
+  try {
+    // ★ここがトグルの肝：likedByMe に応じて method を変える
+    const method = likedByMe ? "DELETE" : "POST";
+
+    const { res, data } = await apiJson(`/api/ideas/${ideaId}/like`, { method });
+
+    if (res.status === 401) {
+      alert("ログインしてください");
+      return;
+    }
+    if (res.status === 403) {
+      alert("自分の投稿にはいいねできません");
+      return;
+    }
+    if (!res.ok) throw new Error(data?.error || "いいねに失敗しました");
+
+    // ★サーバーが like_count を返してない場合もあるので、ここは2択：
+    // (1) サーバー側で返すようにする（おすすめ）→下の「方式B」を参照
+    // (2) クライアントで増減する
+    if (typeof data?.like_count === "number") {
+      likeCount = Number(data.like_count);
+    } else {
+      likeCount = Math.max(0, likeCount + (likedByMe ? -1 : 1));
+    }
+
+    // liked 状態も更新（返ってこないなら反転）
+    if (typeof data?.liked !== "undefined") {
+      likedByMe = !!data.liked;
+    } else {
+      likedByMe = !likedByMe;
+    }
+
+    // 表示反映
+    const countEl = likeBtn.querySelector(".like-count");
+    if (countEl) countEl.textContent = String(likeCount);
+
+    setLikeUI({ ideaId, likeCount, likedByMe, loggedIn: true, isOwner: false });
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "いいねに失敗しました");
+  } finally {
+    likeBtn.disabled = false;
+  }
+});
 
     // ownerは不可（UI保険）
     if (isOwner) {
