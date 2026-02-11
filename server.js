@@ -374,27 +374,40 @@ app.delete("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
     res.status(500).json({ error: "DB delete failed" });
   }
 });
-
-// ================================
-// Likes（トグル仕様に合わせる）
-// ================================
+// Likes: いいね
 app.post("/api/ideas/:id/like", requireLogin, async (req, res) => {
   try {
     const ideaId = Number(req.params.id);
     const userId = req.session.userId;
 
-    // 自分の投稿にいいね禁止（任意）
-    const [[own]] = await db.query("SELECT user_id FROM ideas WHERE id=? LIMIT 1", [ideaId]);
-    if (!own) return res.status(404).json({ error: "idea not found" });
-    if (Number(own.user_id) === Number(userId)) return res.status(403).json({ error: "cannot like own post" });
+    // 自分の投稿にはいいね禁止（DB参照して判定）
+    const [[idea]] = await db.query("SELECT user_id FROM ideas WHERE id=? LIMIT 1", [ideaId]);
+    if (!idea) return res.status(404).json({ error: "idea not found" });
+    if (Number(idea.user_id) === Number(userId)) return res.status(403).json({ error: "cannot like own idea" });
 
     await db.query("INSERT IGNORE INTO likes (user_id, idea_id) VALUES (?, ?)", [userId, ideaId]);
 
     const [[c]] = await db.query("SELECT COUNT(*) AS like_count FROM likes WHERE idea_id=?", [ideaId]);
-    res.json({ ok: true, liked: true, like_count: Number(c.like_count || 0) });
+    res.json({ ok: true, liked: 1, like_count: Number(c.like_count) });
   } catch (e) {
     console.error("POST /api/ideas/:id/like error:", e);
     res.status(500).json({ error: "like failed" });
+  }
+});
+
+// Likes: いいね取り消し
+app.delete("/api/ideas/:id/like", requireLogin, async (req, res) => {
+  try {
+    const ideaId = Number(req.params.id);
+    const userId = req.session.userId;
+
+    await db.query("DELETE FROM likes WHERE user_id=? AND idea_id=?", [userId, ideaId]);
+
+    const [[c]] = await db.query("SELECT COUNT(*) AS like_count FROM likes WHERE idea_id=?", [ideaId]);
+    res.json({ ok: true, liked: 0, like_count: Number(c.like_count) });
+  } catch (e) {
+    console.error("DELETE /api/ideas/:id/like error:", e);
+    res.status(500).json({ error: "unlike failed" });
   }
 });
 
