@@ -401,3 +401,139 @@ textarea {
 textarea:focus {
   border-color: rgba(255,255,255,0.28);
 }
+
+/* =========================
+   Mobile UI: Buttons layout pack
+   - new.html : .form-actions（キャンセル/保存）
+   - index.html : .idea .footer（いいね/詳細）
+   - detail.html : 上部/下部の操作ボタン（編集/削除/いいね）
+   ========================= */
+
+:root{
+  --tap-min: 44px;
+  --gap-s: 10px;
+  --gap-m: 12px;
+  --radius: 12px;
+}
+
+/* 押しやすさ共通 */
+.btn,
+.like-btn,
+button{
+  min-height: var(--tap-min);
+  border-radius: var(--radius);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 文字がはみ出しにくい */
+.btn{
+  white-space: nowrap;
+}
+
+/* =========================
+   1) new.html（キャンセル/保存）
+   ========================= */
+.form-actions{
+  display: flex;
+  gap: var(--gap-s);
+  align-items: center;
+}
+
+.form-actions .btn{
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* 超狭い端末だけ縦並び */
+@media (max-width: 360px){
+  .form-actions{
+    flex-direction: column;
+  }
+  .form-actions .btn{
+    width: 100%;
+  }
+}
+
+/* =========================
+   2) index.html（一覧カードの下：いいね/詳細）
+   ========================= */
+
+/* index.jsで .footer に inline style があっても、できるだけ上書き */
+.idea .footer{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: var(--gap-s) !important;
+  flex-wrap: wrap; /* スマホで折り返す */
+}
+
+/* いいね（span.like-btn）をボタンっぽく */
+.idea .footer .like-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  user-select: none;
+}
+
+/* 右側の「詳細を見る」ボタンを押しやすく */
+.idea .footer .btn{
+  min-height: 40px;
+  padding: 10px 12px;
+}
+
+/* スマホは「詳細」を右寄せ、折り返しても綺麗に */
+@media (max-width: 420px){
+  .idea .footer .btn{
+    margin-left: auto;
+  }
+}
+
+/* =========================
+   3) detail.html（編集/削除/いいね など）
+   ========================= */
+
+/* ナビ右側など "ボタンが横に並ぶエリア" を安定させる */
+.nav-actions{
+  display: flex;
+  gap: var(--gap-s);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* detail のボタン群が縦に落ちた時も崩れない */
+.nav-actions .btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* スマホではボタンを2列で揃える（編集/削除が並ぶ想定） */
+@media (max-width: 480px){
+  .nav-actions .btn{
+    flex: 1 1 auto;
+  }
+}
+
+/* detail の「削除」ボタンがある場合：押し間違い防止で少し強調（任意） */
+#deleteBtn{
+  min-height: var(--tap-min);
+}
+
+/* detail のいいねボタン（.like-btn がボタン要素の場合も） */
+.like-btn{
+  min-height: var(--tap-min);
+}
+
+.action-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.action-row .btn{
+  flex:1;
+}
