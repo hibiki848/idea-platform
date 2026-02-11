@@ -78,8 +78,9 @@ async function fetchIdeas() {
   return res.json();
 }
 
-async function toggleLike(id) {
-  const { res, data } = await apiJson(`${API_BASE}/api/ideas/${id}/like`, { method: "POST" });
+async function toggleLike(id, liked) {
+  const method = liked ? "DELETE" : "POST"; // ★ここが肝
+  const { res, data } = await apiJson(`${API_BASE}/api/ideas/${id}/like`, { method });
   return { ok: res.ok, status: res.status, data };
 }
 
@@ -274,7 +275,10 @@ async function setup() {
     el.style.opacity = ".7";
 
     try {
-      const r = await toggleLike(ideaId);
+     // ★今の状態（♥なら いいね済み）
+      const likedBefore = heartEl.textContent === "♥";
+
+      const r = await toggleLike(ideaId, likedBefore);
 
       if (r.status === 401) {
         alert("ログインしてください（右上のログインフォーム）");
@@ -308,11 +312,16 @@ async function setup() {
     } catch (err) {
       console.error(err);
       alert(err.message || "いいねに失敗しました");
-    } finally {
-      // トグルなので再び押せる（＝他人の投稿のみ）
-      el.setAttribute("aria-disabled", "false");
-      el.style.cursor = "pointer";
-    }
+      } finally {
+        // ★押せる状態に戻す（ただし押せない状態なら戻さない）
+        const isOwner = el.dataset.owner === "1";
+        const canLike = Boolean(meState?.loggedIn) && !isOwner;
+
+        el.setAttribute("aria-disabled", canLike ? "false" : "true");
+        el.style.cursor = canLike ? "pointer" : "default";
+        // opacity は title更新で変えてるので、ここでは触らなくてもOK
+      }
+
   });
 
   // Enter/Spaceでいいね
