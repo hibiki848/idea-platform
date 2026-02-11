@@ -610,3 +610,79 @@ button{
 }
 .hero h1::-webkit-scrollbar,
 .hero p::-webkit-scrollbar { display: none; }
+
+/* ============================
+   Mobile layout fixes
+   ============================ */
+@media (max-width: 520px) {
+
+  /* ① まず全体の「左寄り」を直す（containerを100%+中央寄せ） */
+  .container{
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding-left: 14px;
+    padding-right: 14px;
+    box-sizing: border-box;
+  }
+
+  /* ② ヘッダー：ロゴ行 + ボタン行に分けて、ボタンは2列グリッドで整列 */
+  .nav{
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap: 10px;
+    align-items: start;
+  }
+
+  /* ロゴ（brand）は左、勝手に縮まない */
+  .brand{
+    justify-self: start;
+    min-width: 0;
+  }
+
+  /* ボタン群は「2列」で均等に並べる（一覧 / 新規投稿 / ログアウト / マイページ） */
+  .nav-actions{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  /* ボタンを100%幅にして揃える */
+  .nav-actions .btn,
+  .nav-actions button.btn,
+  .nav-actions a.btn{
+    width: 100%;
+    justify-content: center;
+    padding: 12px 10px;
+  }
+
+  /* 「ログイン中: hibi」みたいなテキストがあるなら折返し防止 */
+  .nav .small,
+  .nav small,
+  .nav .meta,
+  .nav .login-info{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ③ ヒーロー文：1行にしたい要望（はみ出し防止に…で省略） */
+  .hero h1,
+  .hero p{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* スマホでは文字が大きすぎるので少し縮める（1行維持しやすい） */
+  .hero h1{
+    font-size: 24px;
+    line-height: 1.2;
+  }
+  .hero p{
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: .9;
+  }
+}
