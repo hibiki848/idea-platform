@@ -98,6 +98,9 @@ function applyAuthUI(state) {
   const navActions = document.querySelector(".nav-actions.auth") || document.querySelector(".nav-actions");
   const authStatus = $("#authStatus");
 
+    const registerBtn = $("#registerBtn");
+  if (registerBtn) registerBtn.style.display = loggedIn ? "none" : "";
+
   const logoutBtn = $("#logoutBtn");
   const mypageLink = $("#mypageLink");
 
