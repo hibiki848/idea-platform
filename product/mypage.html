@@ -6,36 +6,61 @@
   <title>IdeaShelf | マイページ</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-  /* マイページ全体のカードを大きく */
-  main.container > .card {
-    padding: 22px;
-    border-radius: 18px;
-  }
+    /* マイページ全体のカードを大きく（維持） */
+    main.container > .card {
+      padding: 22px;
+      border-radius: 18px;
+    }
 
-  /* 見出しも少し大きく */
-  main.container > .card h2 {
-    font-size: 1.25rem;
-    margin-top: 0;
-  }
+    /* 見出しも少し大きく（維持） */
+    main.container > .card h2 {
+      font-size: 1.25rem;
+      margin-top: 0;
+    }
 
-  /* 小さめ文字（ログイン中〜など）を読みやすく */
-  main.container > .card .small {
-    font-size: 0.98rem;
-  }
+    /* 小さめ文字（ログイン中〜など）を読みやすく（維持） */
+    main.container > .card .small {
+      font-size: 0.98rem;
+    }
 
-  /* 「自分のアイデア」内の各アイデアカードはさらに大きく */
-  #myIdeasGrid .card {
-    padding: 20px;
-    border-radius: 18px;
-  }
+    /* 余白感アップ（カード同士の間隔）（維持） */
+    #myIdeasGrid {
+      gap: 16px;
+    }
 
-  /* 余白感アップ（カード同士の間隔） */
-  #myIdeasGrid {
-    gap: 16px;
-  }
-</style>
+    /* ✅ マイページのヘッダーボタン右寄せ（align-items:right は効かないので） */
+    .nav-actions.my-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end; /* 右寄せ */
+    }
 
+    /* ✅ マイページでは一覧カード(.idea)を少し大きくする（一覧ページは崩さない） */
+    #myIdeasGrid .idea{
+      padding: 20px;
+      border-radius: 18px;
+    }
+
+    /* ✅ マイページのカード内の右側ボタン群を右寄せ */
+    #myIdeasGrid .my-idea-actions{
+      margin-left:auto;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    /* ✅ マイページの「いいね表示」は一覧っぽく小さめに */
+    #myIdeasGrid .like-wrap{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      opacity:.9;
+    }
+  </style>
 </head>
+
 <body>
   <header>
     <div class="container nav">
@@ -44,7 +69,8 @@
         <span>IdeaShelf</span>
       </a>
 
-      <div class="nav-actions" style="display:flex; gap:10px; align-items:right; flex-wrap:wrap;">
+      <!-- ✅ 右寄せを効かせるため class を追加 -->
+      <div class="nav-actions my-actions">
         <a class="btn ghost" href="index.html">一覧に戻る</a>
         <a class="btn primary" href="new.html">＋ 新規投稿</a>
         <button class="btn ghost" id="logoutBtn" type="button">ログアウト</button>
@@ -66,11 +92,11 @@
     </section>
 
     <section class="card" style="margin-top:16px;">
-        <h2 style="margin-top:0;">自分のアイデア</h2>
-        <div id="myIdeasGrid" class="grid"></div>
-        <p id="myIdeasEmpty" class="small" style="opacity:.7; display:none; margin-top:10px;">
-            まだ投稿がありません。
-        </p>
+      <h2 style="margin-top:0;">自分のアイデア</h2>
+      <div id="myIdeasGrid" class="grid"></div>
+      <p id="myIdeasEmpty" class="small" style="opacity:.7; display:none; margin-top:10px;">
+        まだ投稿がありません。
+      </p>
     </section>
 
     <section class="card" style="margin-top:16px;">
@@ -80,8 +106,7 @@
       </p>
 
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;">
-        <input id="confirmText" class="input" type="text" placeholder='DELETE と入力'
-               style="width:180px;">
+        <input id="confirmText" class="input" type="text" placeholder='DELETE と入力' style="width:180px;">
         <button id="deleteBtn" class="btn" type="button" disabled>アカウント削除</button>
       </div>
 
@@ -93,7 +118,7 @@
 
   <script>
     async function getMe() {
-      const r = await fetch("/api/me");
+      const r = await fetch("/api/me", { credentials: "same-origin" });
       return await r.json();
     }
 
@@ -110,7 +135,7 @@
     }
 
     document.getElementById("logoutBtn").onclick = async () => {
-      await fetch("/api/logout", { method: "POST" });
+      await fetch("/api/logout", { method: "POST", credentials: "same-origin" });
       location.href = "/index.html";
     };
 
@@ -125,7 +150,7 @@
       const ok = confirm("本当にアカウントを削除しますか？取り消しできません。");
       if (!ok) return;
 
-      const r = await fetch("/api/account", { method: "DELETE" });
+      const r = await fetch("/api/account", { method: "DELETE", credentials: "same-origin" });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) return alert(j.error || "削除に失敗しました");
 
@@ -133,74 +158,116 @@
       location.href = "/index.html";
     };
 
-    ensureLogin();
     function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[c]));
-}
+      return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[c]));
+    }
 
-function renderMyIdeas(items) {
-  const grid = document.getElementById("myIdeasGrid");
-  const empty = document.getElementById("myIdeasEmpty");
+    function formatDate(iso) {
+      try {
+        if (!iso) return "";
+        const d = new Date(iso);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}/${m}/${day}`;
+      } catch {
+        return "";
+      }
+    }
 
-  if (!items || items.length === 0) {
-    grid.innerHTML = "";
-    empty.style.display = "";
-    return;
-  }
-  empty.style.display = "none";
+    function parseTags(tags) {
+      if (typeof tags === "string") {
+        return tags.split(/[,、]/).map((s) => s.trim()).filter(Boolean);
+      }
+      if (Array.isArray(tags)) return tags;
+      return [];
+    }
 
-  grid.innerHTML = items.map((it) => `
-    <article class="card">
-      <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
-        <div>
-          <h3 style="margin:0 0 6px 0;">${escapeHtml(it.product_name)}</h3>
-          ${it.subtitle ? `<p class="small" style="opacity:.8; margin:0 0 8px 0;">${escapeHtml(it.subtitle)}</p>` : ""}
-        </div>
-        <div class="small" style="white-space:nowrap; opacity:.85;">
-          ♡ ${Number(it.like_count ?? 0)}
-        </div>
-      </div>
+    function renderMyIdeas(items) {
+      const grid = document.getElementById("myIdeasGrid");
+      const empty = document.getElementById("myIdeasEmpty");
 
-      <p class="small" style="opacity:.85; margin:0 0 10px 0;">
-        ${escapeHtml((it.idea_text ?? "").slice(0, 120))}${(it.idea_text ?? "").length > 120 ? "…" : ""}
-      </p>
+      if (!items || items.length === 0) {
+        grid.innerHTML = "";
+        empty.style.display = "";
+        return;
+      }
+      empty.style.display = "none";
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <span class="small" style="opacity:.7;">${escapeHtml(it.status ?? "draft")}</span>
-        <span class="small" style="opacity:.7;">${escapeHtml(it.created_at ?? "")}</span>
-        <div class="my-idea-actions">
-          <a class="btn ghost" href="detail.html?id=${it.id}">開く</a>
-          <a class="btn" href="edit.html?id=${it.id}">編集</a>
-        </div>
-      </div>
-    </article>
-  `).join("");
-}
+      grid.innerHTML = items.map((it) => {
+        const id = it.id;
 
-async function loadMyIdeas() {
-  const r = await fetch("/api/my/ideas");
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.error || "failed");
-  renderMyIdeas(data);
-}
-ensureLogin().then(() => loadMyIdeas()).catch(() => {});
+        const title = escapeHtml(it.product_name ?? "");
+        const desc = String(it.idea_text ?? "");
+        const snippet = escapeHtml(desc).slice(0, 120) + (desc.length > 120 ? "…" : "");
+        const created = formatDate(it.created_at);
 
-async function deleteAccount(){
-  if (!confirm("アカウントを削除します。元に戻せません。OK？")) return;
+        const isPub = it.status === "published";
+        const statusText = isPub ? "公開" : "下書き";
+        const statusClass = isPub ? "pub" : "draft";
 
-  const res = await fetch("/api/account", { method: "DELETE", credentials: "same-origin" });
-  const data = await res.json().catch(() => ({}));
+        const tags = parseTags(it.tags);
+        const tagsHtml = tags.length
+          ? tags.map((t) => `<span class="badge">${escapeHtml(t)}</span>`).join("")
+          : `<span class="badge muted">タグなし</span>`;
 
-  if (!res.ok) {
-    alert(data.error || "削除に失敗しました");
-    return;
-  }
-  alert("削除しました");
-  location.href = "index.html";
-}
+        const likes = Number(it.like_count ?? 0);
 
+        const href = `detail.html?id=${encodeURIComponent(id)}`;
+
+        return `
+          <a class="idea" href="${href}">
+            <div class="title">
+              <span>${title}</span>
+              <span class="badge ${statusClass}">${statusText}</span>
+            </div>
+
+            <div class="meta">
+              <span>${created}</span>
+              <span>作成者：you</span>
+            </div>
+
+            <div class="badges">${tagsHtml}</div>
+
+            <p class="snippet">${snippet}</p>
+
+            <div class="footer" style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="small like-wrap" title="いいね数">
+                <span>♡</span>
+                <span class="badge like-count">${Number.isFinite(likes) ? likes : 0}</span>
+              </span>
+
+              <div class="my-idea-actions">
+                <a class="btn ghost" href="detail.html?id=${encodeURIComponent(id)}">開く</a>
+                <a class="btn" href="edit.html?id=${encodeURIComponent(id)}">編集</a>
+              </div>
+            </div>
+          </a>
+        `;
+      }).join("");
+
+      // ✅ 外側カード（a.idea）の遷移を、内側のボタンで止める（開く/編集が押しやすくなる）
+      grid.querySelectorAll(".my-idea-actions a").forEach((a) => {
+        a.addEventListener("click", (e) => e.stopPropagation());
+      });
+    }
+
+    async function loadMyIdeas() {
+      const r = await fetch("/api/my/ideas", { credentials: "same-origin" });
+      const data = await r.json().catch(() => []);
+      if (!r.ok) throw new Error(data?.error || "failed");
+      renderMyIdeas(data);
+    }
+
+    ensureLogin()
+      .then((me) => (me ? loadMyIdeas() : null))
+      .catch(() => {});
   </script>
 </body>
 </html>
