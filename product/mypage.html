@@ -187,6 +187,20 @@ async function loadMyIdeas() {
 }
 ensureLogin().then(() => loadMyIdeas()).catch(() => {});
 
+async function deleteAccount(){
+  if (!confirm("アカウントを削除します。元に戻せません。OK？")) return;
+
+  const res = await fetch("/api/account", { method: "DELETE", credentials: "same-origin" });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    alert(data.error || "削除に失敗しました");
+    return;
+  }
+  alert("削除しました");
+  location.href = "index.html";
+}
+
   </script>
 </body>
 </html>

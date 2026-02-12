@@ -454,3 +454,26 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Server running:", PORT);
 });
+
+// アカウント削除（ログイン中の自分だけ）
+app.delete("/api/account", requireLogin, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    // 依存データが CASCADE で消えない構成なら、先に手動削除が必要
+    // （あなたのDB構成に合わせて必要なものだけ残してOK）
+    await db.query("DELETE FROM likes WHERE user_id = ?", [userId]);
+    await db.query("DELETE FROM ideas WHERE user_id = ?", [userId]);
+
+    // 最後に users
+    await db.query("DELETE FROM users WHERE id = ?", [userId]);
+
+    // セッション破棄
+    req.session.destroy(() => {
+      res.json({ ok: true });
+    });
+  } catch (e) {
+    console.error("DELETE /api/account error:", e);
+    res.status(500).json({ error: "Account delete failed" });
+  }
+});
