@@ -25,10 +25,12 @@
           <button class="btn primary" type="submit">ログイン</button>
         </form>
 
+
+        <a class="btn ghost" href="index.html">一覧に戻る</a>
+
         <!-- ★ログアウトボタン（ログイン時に表示） -->
         <button class="btn ghost" id="logoutBtn" type="button" style="display:none;">ログアウト</button>
 
-        <a class="btn ghost" href="index.html">一覧に戻る</a>
       </div>
     </div>
   </header>
@@ -110,7 +112,7 @@
         const me = await res.json().catch(() => ({ userId: null }));
 
         if (me.userId) {
-          statusEl.textContent = `ログイン中 (userId: ${me.userId})`;
+          statusEl.textContent = `ログイン中：${me.username ?? "unknown"}`;
           form.style.display = "none";
           logoutBtn.style.display = "";
         } else {
