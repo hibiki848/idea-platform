@@ -587,3 +587,22 @@ body::before{
 .nav-actions.auth.is-logged-in #authStatus{
   display: none !important;
 }
+
+.auth-bottom{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.auth-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.auth-right{
+  margin-left:auto;           /* ←右端へ寄せる本体 */
+  display:flex;
+  align-items:center;
+  gap:10px;
+}

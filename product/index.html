@@ -14,28 +14,31 @@
         <span>IdeaShelf</span>
       </a>
 
-      <div class="nav-actions auth" style="gap:10px; align-items:stretch;">
-  <!-- 1段目：username/password + 登録 -->
-  <div class="auth-top">
-    <form id="loginForm" class="auth-form" style="gap:8px; align-items:center;">
-      <input id="loginUser" class="input" type="text" placeholder="username"
-             autocomplete="username" style="width:140px;">
-      <input id="loginPass" class="input" type="password" placeholder="password"
-             autocomplete="current-password" style="width:140px;">
+  <div class="nav-actions auth" style="gap:10px; align-items:stretch;">
+    <!-- 1段目：username/password -->
+    <div class="auth-top">
+      <form id="loginForm" class="auth-form" style="gap:8px; align-items:center;">
+        <input id="loginUser" class="input" type="text" placeholder="username"
+              autocomplete="username" style="width:140px;">
+        <input id="loginPass" class="input" type="password" placeholder="password"
+              autocomplete="current-password" style="width:140px;">
+      </form>
+    </div>
 
-      <button class="btn" id="registerBtn" type="button">登録</button>
-    </form>
-  </div>
+    <!-- 2段目：左側（投稿系） / 右側（認証ボタン） -->
+    <div class="auth-bottom">
+      <div class="auth-left">
+        <a id="newPostBtn" class="btn" href="new.html">新規投稿</a>
+        <a class="btn ghost" id="mypageLink" href="mypage.html" style="display:none;">マイページ</a>
+        <button class="btn ghost" id="logoutBtn" type="button" style="display:none;">ログアウト</button>
+      </div>
 
-  <!-- 2段目：新規投稿 / ログイン / 未ログイン -->
-  <div class="auth-bottom">
-    <a id="newPostBtn" class="btn" href="new.html">新規投稿</a>
-    <a class="btn ghost" id="mypageLink" href="mypage.html" style="display:none;">マイページ</a>
-    <button class="btn ghost" id="logoutBtn" type="button" style="display:none;">ログアウト</button>
-
-    <button class="btn primary" type="submit" form="loginForm" id="loginBtn">ログイン</button>
-    <span id="authStatus" class="small" style="opacity:.85;">未ログイン</span>
-  </div>
+      <div class="auth-right">
+        <span id="authStatus" class="small" style="opacity:.85;">未ログイン</span>
+        <button class="btn" id="registerBtn" type="button">登録</button>
+        <button class="btn primary" type="submit" form="loginForm" id="loginBtn">ログイン</button>
+      </div>
+    </div>
 </div>
 
   </header>
