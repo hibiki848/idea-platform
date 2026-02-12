@@ -206,6 +206,7 @@
         const title = escapeHtml(it.product_name ?? "");
         const desc = String(it.idea_text ?? "");
         const snippet = escapeHtml(desc).slice(0, 120) + (desc.length > 120 ? "…" : "");
+
         const created = formatDate(it.created_at);
 
         const isPub = it.status === "published";
@@ -219,10 +220,9 @@
 
         const likes = Number(it.like_count ?? 0);
 
-        const href = `detail.html?id=${encodeURIComponent(id)}`;
-
+        // 外側は article にして a のネストを回避
         return `
-          <a class="idea" href="${href}">
+          <article class="idea" data-href="detail.html?id=${encodeURIComponent(id)}" role="link" tabindex="0">
             <div class="title">
               <span>${title}</span>
               <span class="badge ${statusClass}">${statusText}</span>
@@ -248,13 +248,24 @@
                 <a class="btn" href="edit.html?id=${encodeURIComponent(id)}">編集</a>
               </div>
             </div>
-          </a>
+          </article>
         `;
       }).join("");
 
-      // ✅ 外側カード（a.idea）の遷移を、内側のボタンで止める（開く/編集が押しやすくなる）
-      grid.querySelectorAll(".my-idea-actions a").forEach((a) => {
-        a.addEventListener("click", (e) => e.stopPropagation());
+      // ✅ カードクリックで詳細へ（ボタン押下は除外）
+      grid.querySelectorAll(".idea").forEach((card) => {
+        card.addEventListener("click", (e) => {
+          if (e.target.closest(".my-idea-actions a")) return; // ボタンなら何もしない
+          const href = card.getAttribute("data-href");
+          if (href) location.href = href;
+        });
+
+        // Enterキーでも開ける
+        card.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter") return;
+          const href = card.getAttribute("data-href");
+          if (href) location.href = href;
+        });
       });
     }
 

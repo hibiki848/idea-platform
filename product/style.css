@@ -630,3 +630,18 @@ body::before{
   display: inline-block;
   margin-right: auto;         /* ←ステータスは左、ボタンは右 */
 }
+
+/* マイページのカード（article.idea）でも一覧と同じ見た目に */
+#myIdeasGrid .idea{
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+}
+
+/* footer右側のボタンを下段で右寄せに固定 */
+#myIdeasGrid .my-idea-actions{
+  margin-left: auto;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
