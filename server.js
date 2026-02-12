@@ -106,11 +106,15 @@ app.post("/api/register", async (req, res) => {
     await db.query("INSERT INTO users (username, password_hash) VALUES (?, ?)", [username, password_hash]);
 
     res.json({ ok: true });
-  } catch (e) {
-    console.error("POST /api/register error:", e);
-    res.status(400).json({ error: "register failed" });
-  }
-});
+    } catch (e) {
+      console.error("POST /api/register error:", e);
+      if (e?.code === "ER_DUP_ENTRY") {
+        return res.status(409).json({ error: "そのユーザー名は既に使われています" });
+      }
+      return res.status(500).json({ error: "register failed" });
+    }
+
+  });
 
 app.post("/api/login", async (req, res) => {
   try {
