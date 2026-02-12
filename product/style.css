@@ -496,3 +496,22 @@ textarea{
     opacity: .9;
   }
 }
+
+html{ background: var(--bg); }
+
+body{
+  background: var(--bg) !important;
+  position: relative;
+  min-height: 100dvh;
+}
+
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(800px 500px at 15% 10%, rgba(122,162,255,.18), transparent 60%),
+    radial-gradient(700px 450px at 85% 20%, rgba(67,230,183,.12), transparent 55%);
+}
