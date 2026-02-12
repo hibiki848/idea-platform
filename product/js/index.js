@@ -134,6 +134,11 @@ function applyAuthUI(state) {
   const passEl = $("#loginPass");
   if (userEl) userEl.disabled = loggedIn;
   if (passEl) passEl.disabled = loggedIn;
+
+    // 新規投稿ボタン（未ログイン時は消す）
+  const newPostBtn = $("#newPostBtn");
+  if (newPostBtn) newPostBtn.style.display = loggedIn ? "" : "none";
+
 }
 
 function renderIdeaCard(row) {
