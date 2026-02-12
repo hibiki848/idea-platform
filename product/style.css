@@ -515,3 +515,49 @@ body::before{
     radial-gradient(800px 500px at 15% 10%, rgba(122,162,255,.18), transparent 60%),
     radial-gradient(700px 450px at 85% 20%, rgba(67,230,183,.12), transparent 55%);
 }
+
+/* ===== header auth 2-row layout ===== */
+.nav-actions.auth{
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 8px;
+}
+
+/* 上段：フォーム（username/password/登録） */
+.auth-top .auth-form{
+  width: 100%;
+}
+
+/* 2段目：左から 新規投稿 / ログイン / 未ログイン（右寄せ） */
+.auth-bottom{
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+/* 未ログインを右寄せ */
+.auth-bottom #authStatus{
+  justify-self: end;
+  text-align: right;
+}
+
+/* スマホの微調整（入力が潰れないように） */
+@media (max-width: 520px){
+  .auth-top .auth-form input{
+    width: 38vw !important; /* 140px指定を上書き */
+    min-width: 110px;
+  }
+  .auth-bottom{
+    grid-template-columns: auto auto 1fr; /* ログアウト/マイページは非表示前提 */
+  }
+}
+
+.nav-actions.auth{ display:grid !important; }
+
+@media (max-width: 520px){
+  .nav-actions.auth{
+    display:grid !important;
+    overflow: visible; /* 横スクロール解除 */
+  }
+}
