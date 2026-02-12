@@ -87,6 +87,55 @@ async function toggleLike(id, liked) {
 let allRows = [];
 let meState = { loggedIn: false, userId: null, username: null };
 
+/* ================================
+   Auth UI (header)
+   - loggedIn: ログインボタン隠す
+   - loggedIn: ログアウト/マイページ表示
+   ================================ */
+function applyAuthUI(state) {
+  const loggedIn = Boolean(state?.loggedIn);
+
+  const navActions = document.querySelector(".nav-actions.auth") || document.querySelector(".nav-actions");
+  const authStatus = $("#authStatus");
+
+  const logoutBtn = $("#logoutBtn");
+  const mypageLink = $("#mypageLink");
+
+  // ログインボタン（idがある場合）
+  const loginBtn = $("#loginBtn");
+
+  // idが無い場合もあるので、form内の submit も探す
+  const loginForm = $("#loginForm");
+  const loginSubmitInForm =
+    loginForm?.querySelector?.('button[type="submit"], input[type="submit"]') || null;
+
+  // class（CSSで制御したいとき用）
+  if (navActions?.classList) {
+    navActions.classList.toggle("is-logged-in", loggedIn);
+  }
+
+  // ステータス表示
+  if (authStatus) {
+    authStatus.textContent = loggedIn ? `ログイン中：${state?.username ?? ""}`.trim() : "未ログイン";
+  }
+
+  // 表示切替
+  if (logoutBtn) logoutBtn.style.display = loggedIn ? "" : "none";
+  if (mypageLink) mypageLink.style.display = loggedIn ? "" : "none";
+
+  // ログイン中はログインボタン不要
+  if (loginBtn) loginBtn.style.display = loggedIn ? "none" : "";
+  if (loginSubmitInForm && loginSubmitInForm !== loginBtn) {
+    loginSubmitInForm.style.display = loggedIn ? "none" : "";
+  }
+
+  // （任意）ログイン中は入力を無効化して誤操作防止
+  const userEl = $("#loginUser");
+  const passEl = $("#loginPass");
+  if (userEl) userEl.disabled = loggedIn;
+  if (passEl) passEl.disabled = loggedIn;
+}
+
 function renderIdeaCard(row) {
   const id = row.id;
   const title = escapeHtml(row.product_name ?? "");
@@ -217,6 +266,76 @@ function applyFilters({ grid, searchInput, sortSelect, categorySelect }) {
   renderList(grid, rows);
 }
 
+/* ================================
+   Auth handlers (login/register/logout)
+   ================================ */
+function setupAuthHandlers(refreshAll) {
+  const loginForm = $("#loginForm");
+  const userEl = $("#loginUser");
+  const passEl = $("#loginPass");
+  const registerBtn = $("#registerBtn");
+  const logoutBtn = $("#logoutBtn");
+
+  // ログイン
+  loginForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!userEl?.value || !passEl?.value) {
+      alert("username と password を入力してください");
+      return;
+    }
+
+    const { res, data } = await apiJson("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ username: userEl.value, password: passEl.value }),
+    });
+
+    if (!res.ok) {
+      alert(data?.error || "ログインに失敗しました");
+      return;
+    }
+
+    // 入力クリア（任意）
+    userEl.value = "";
+    passEl.value = "";
+
+    await refreshAll();
+  });
+
+  // 登録
+  registerBtn?.addEventListener("click", async () => {
+    if (!userEl?.value || !passEl?.value) {
+      alert("username と password を入力してください");
+      return;
+    }
+
+    const { res, data } = await apiJson("/api/register", {
+      method: "POST",
+      body: JSON.stringify({ username: userEl.value, password: passEl.value }),
+    });
+
+    if (res.status === 409) {
+      alert(data?.error || "そのユーザー名は既に使われています");
+      return;
+    }
+    if (!res.ok) {
+      alert(data?.error || "登録に失敗しました");
+      return;
+    }
+
+    alert("登録しました。続けてログインしてください。");
+  });
+
+  // ログアウト
+  logoutBtn?.addEventListener("click", async () => {
+    const { res, data } = await apiJson("/api/logout", { method: "POST" });
+    if (!res.ok) {
+      alert(data?.error || "ログアウトに失敗しました");
+      return;
+    }
+    await refreshAll();
+  });
+}
+
 async function setup() {
   const grid = $("#ideaGrid");
   if (!grid) return;
@@ -227,9 +346,14 @@ async function setup() {
 
   async function refreshAll() {
     meState = await fetchMe();
+    applyAuthUI(meState); // ★ヘッダー表示を更新
+
     allRows = await fetchIdeas();
     applyFilters({ grid, searchInput, sortSelect, categorySelect });
   }
+
+  // 認証UI（ログイン/登録/ログアウト）
+  setupAuthHandlers(refreshAll);
 
   try {
     await refreshAll();
@@ -275,7 +399,7 @@ async function setup() {
     el.style.opacity = ".7";
 
     try {
-     // ★今の状態（♥なら いいね済み）
+      // ★今の状態（♥なら いいね済み）
       const likedBefore = heartEl.textContent === "♥";
 
       const r = await toggleLike(ideaId, likedBefore);
@@ -312,16 +436,15 @@ async function setup() {
     } catch (err) {
       console.error(err);
       alert(err.message || "いいねに失敗しました");
-      } finally {
-        // ★押せる状態に戻す（ただし押せない状態なら戻さない）
-        const isOwner = el.dataset.owner === "1";
-        const canLike = Boolean(meState?.loggedIn) && !isOwner;
+    } finally {
+      // ★押せる状態に戻す（ただし押せない状態なら戻さない）
+      const isOwner = el.dataset.owner === "1";
+      const canLike = Boolean(meState?.loggedIn) && !isOwner;
 
-        el.setAttribute("aria-disabled", canLike ? "false" : "true");
-        el.style.cursor = canLike ? "pointer" : "default";
-        // opacity は title更新で変えてるので、ここでは触らなくてもOK
-      }
-
+      el.setAttribute("aria-disabled", canLike ? "false" : "true");
+      el.style.cursor = canLike ? "pointer" : "default";
+      // opacity は title更新で変えてるので、ここでは触らなくてもOK
+    }
   });
 
   // Enter/Spaceでいいね

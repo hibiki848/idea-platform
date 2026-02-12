@@ -29,16 +29,14 @@
 
   <!-- 2段目：新規投稿 / ログイン / 未ログイン -->
   <div class="auth-bottom">
-    <a class="btn primary" href="new.html">＋ 新規投稿</a>
-
-    <!-- ログインボタンは form の submit を使うので form の外に置く場合は JS が必要。
-         いまのまま submit を使いたいなら、下のボタンは form="loginForm" を付ける -->
-    <button class="btn primary" type="submit" form="loginForm">ログイン</button>
-
-    <span id="authStatus" class="small" style="opacity:.85;">未ログイン</span>
-
     <button class="btn ghost" id="logoutBtn" type="button" style="display:none;">ログアウト</button>
     <a class="btn ghost" id="mypageLink" href="mypage.html" style="display:none;">マイページ</a>
+
+    <a class="btn primary" href="new.html">＋ 新規投稿</a>
+
+    <button class="btn primary" type="submit" form="loginForm" id="loginBtn">ログイン</button>
+
+    <span id="authStatus" class="small" style="opacity:.85;">未ログイン</span>
   </div>
 </div>
 

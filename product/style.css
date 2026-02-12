@@ -561,3 +561,29 @@ body::before{
     overflow: visible; /* 横スクロール解除 */
   }
 }
+
+/* 下段：基本は横1列、右端にステータス */
+.auth-bottom{
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ステータスを右端へ */
+.auth-bottom #authStatus{
+  margin-left: auto;
+  justify-self: end;
+  text-align: right;
+}
+
+/* ログイン中はログインボタンを隠す */
+.nav-actions.auth.is-logged-in #loginBtn{
+  display: none !important;
+}
+
+/* ログイン中はステータスも必要なければ消す（不要ならON） */
+.nav-actions.auth.is-logged-in #authStatus{
+  display: none !important;
+}
