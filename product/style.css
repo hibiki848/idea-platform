@@ -606,3 +606,27 @@ body::before{
   align-items:center;
   gap:10px;
 }
+
+/* ログイン時：一覧の下段ボタン群を右端へ */
+.nav-actions.auth.is-logged-in .auth-bottom{
+  display: flex;
+  align-items: center;
+}
+
+.nav-actions.auth.is-logged-in .auth-left{
+  margin-left: auto;          /* ←これで auth-left が右端へ寄る */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ログイン時：右側（登録/ログイン等）は基本不要なら消す */
+.nav-actions.auth.is-logged-in .auth-right{
+  display: none;
+}
+
+/* ログイン表示テキストを残したいなら（左に表示してボタンは右） */
+.nav-actions.auth.is-logged-in #authStatus{
+  display: inline-block;
+  margin-right: auto;         /* ←ステータスは左、ボタンは右 */
+}
