@@ -122,11 +122,12 @@
       }
       $("#summary").innerHTML = `
         <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
-          <div class="pill">今日使った人: <b>${data.dau}</b></div>
-          <div class="pill">直近７日間で使った人: <b>${data.wau}</b></div>
-          <div class="pill">直近３０日で使った人: <b>${data.mau}</b></div>
-          <div class="pill">新規(7d): <b>${data.newUsers7}</b></div>
-          <div class="pill">投稿(7d): <b>${data.ideas7}</b></div>
+          <div class="pill">総登録ユーザー: <b>${data.totalUsers}</b></div>
+          <div class="pill">今日の利用者: <b>${data.dau}</b></div>
+          <div class="pill">直近７日間の利用者: <b>${data.wau}</b></div>
+          <div class="pill">直近３０日の利用者: <b>${data.mau}</b></div>
+          <div class="pill">新規で入った人(7days): <b>${data.newUsers7}</b></div>
+          <div class="pill">新規投稿(7days): <b>${data.ideas7}</b></div>
         </div>
       `;
       return true;

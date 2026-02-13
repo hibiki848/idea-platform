@@ -248,12 +248,18 @@ app.get("/api/admin/stats/summary", requireAdmin, async (req, res) => {
       WHERE created_at >= (NOW() - INTERVAL 7 DAY)
     `);
 
+    const [[totalUsers]] = await db.query(`
+      SELECT COUNT(*) AS n
+      FROM users
+    `);
+
     res.json({
       dau: Number(dau.n || 0),
       wau: Number(wau.n || 0),
       mau: Number(mau.n || 0),
       newUsers7: Number(newUsers7.n || 0),
       ideas7: Number(ideas7.n || 0),
+      totalUsers: Number(totalUsers.n || 0),
     });
   } catch (e) {
     console.error("GET /api/admin/stats/summary error:", e);
