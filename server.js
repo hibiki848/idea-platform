@@ -598,3 +598,32 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Server running:", PORT);
 });
+
+// Admin: recent events
+app.get("/api/admin/events/recent", requireAdmin, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit || 50), 200);
+
+    const [rows] = await db.query(
+      `
+      SELECT
+        e.id,
+        e.user_id,
+        u.username,
+        e.event_name,
+        e.path,
+        e.created_at
+      FROM events e
+      LEFT JOIN users u ON u.id = e.user_id
+      ORDER BY e.id DESC
+      LIMIT ?
+      `,
+      [limit]
+    );
+
+    res.json(rows);
+  } catch (e) {
+    console.error("GET /api/admin/events/recent error:", e);
+    res.status(500).json({ error: "events read failed" });
+  }
+});

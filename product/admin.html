@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IdeaShelf | Admin</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .grid2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    @media (max-width:900px){ .grid2{ grid-template-columns:1fr; } }
+    table{ width:100%; border-collapse:collapse; }
+    th,td{ padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; }
+    th{ opacity:.85; font-weight:600; }
+    .pill{ display:inline-block; padding:2px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); }
+    .right{ text-align:right; }
+    .muted{ opacity:.8; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="index.html">
+        <span class="logo" aria-hidden="true"></span>
+        <span>IdeaShelf</span>
+      </a>
+      <div class="nav-actions">
+        <a class="btn ghost" href="index.html">一覧へ</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1>Admin Dashboard</h1>
+        <p class="muted">DAU/WAUと直近イベントを確認できます（管理者のみ）</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="grid2">
+        <div>
+          <h3 style="margin:0 0 10px;">サマリー</h3>
+          <div id="summary" class="muted">読み込み中...</div>
+        </div>
+
+        <div>
+          <h3 style="margin:0 0 10px;">表示件数</h3>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <select id="limit" class="select">
+              <option>20</option>
+              <option selected>50</option>
+              <option>100</option>
+              <option>200</option>
+            </select>
+            <button id="reload" class="btn primary" type="button">更新</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3 style="margin:0 0 12px;">直近イベント</h3>
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th class="right">id</th>
+              <th>time</th>
+              <th>event</th>
+              <th>user</th>
+              <th>path</th>
+            </tr>
+          </thead>
+          <tbody id="eventsBody">
+            <tr><td colspan="5" class="muted">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>© IdeaShelf</footer>
+  </main>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+
+    async function getJson(url) {
+      const res = await fetch(url, { credentials: "same-origin" });
+      let data = null;
+      try { data = await res.json(); } catch { data = null; }
+      return { res, data };
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#39;");
+    }
+
+    function fmt(ts){
+      try{
+        const d = new Date(ts);
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const day = String(d.getDate()).padStart(2,"0");
+        const hh = String(d.getHours()).padStart(2,"0");
+        const mm = String(d.getMinutes()).padStart(2,"0");
+        const ss = String(d.getSeconds()).padStart(2,"0");
+        return `${y}/${m}/${day} ${hh}:${mm}:${ss}`;
+      }catch{ return ts; }
+    }
+
+    async function loadSummary(){
+      const { res, data } = await getJson("/api/admin/stats/summary");
+      if (!res.ok) {
+        $("#summary").textContent = (data?.error || "admin only / not logged in");
+        return false;
+      }
+      $("#summary").innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
+          <div class="pill">DAU: <b>${data.dau}</b></div>
+          <div class="pill">WAU: <b>${data.wau}</b></div>
+          <div class="pill">MAU: <b>${data.mau}</b></div>
+          <div class="pill">新規(7d): <b>${data.newUsers7}</b></div>
+          <div class="pill">投稿(7d): <b>${data.ideas7}</b></div>
+        </div>
+      `;
+      return true;
+    }
+
+    async function loadEvents(){
+      const limit = $("#limit").value;
+      const { res, data } = await getJson(`/api/admin/events/recent?limit=${encodeURIComponent(limit)}`);
+      const body = $("#eventsBody");
+
+      if (!res.ok) {
+        body.innerHTML = `<tr><td colspan="5" class="muted">${escapeHtml(data?.error || "events read failed")}</td></tr>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        body.innerHTML = `<tr><td colspan="5" class="muted">イベントがありません</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = data.map(r => `
+        <tr>
+          <td class="right">${r.id}</td>
+          <td>${escapeHtml(fmt(r.created_at))}</td>
+          <td><span class="pill">${escapeHtml(r.event_name)}</span></td>
+          <td>${escapeHtml(r.username || (r.user_id ?? ""))}</td>
+          <td class="muted">${escapeHtml(r.path || "")}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function main(){
+      const ok = await loadSummary();
+      if (ok) await loadEvents();
+    }
+
+    $("#reload").addEventListener("click", () => main());
+    main();
+  </script>
+</body>
+</html>
