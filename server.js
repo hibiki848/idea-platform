@@ -5,6 +5,7 @@ const express = require("express");
 const path = require("path");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 
 const app = express();
 
@@ -52,6 +53,21 @@ function requireLogin(req, res, next) {
   next();
 }
 
+async function requireAdmin(req, res, next) {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "login required" });
+
+    const [[me]] = await db.query("SELECT is_admin FROM users WHERE id=? LIMIT 1", [userId]);
+    if (!me || Number(me.is_admin) !== 1) return res.status(403).json({ error: "admin only" });
+
+    next();
+  } catch (e) {
+    console.error("requireAdmin error:", e);
+    res.status(500).json({ error: "server error" });
+  }
+}
+
 async function requireOwner(req, res, next) {
   try {
     const id = req.params.id;
@@ -94,6 +110,38 @@ function normalizeTags(t) {
   return normalized || null;
 }
 
+// ===== events logger =====
+function sha256(s) {
+  return crypto.createHash("sha256").update(String(s || "")).digest("hex");
+}
+
+async function logEvent(req, event_name) {
+  try {
+    const userId = req.session?.userId ?? null;
+    const path = req.originalUrl || req.path || null;
+
+    const ip =
+      (req.headers["x-forwarded-for"]?.toString().split(",")[0] ||
+        req.socket?.remoteAddress ||
+        "").trim();
+
+    const ua = req.headers["user-agent"] || "";
+
+    const salt = process.env.EVENT_SALT || "dev-event-salt";
+    const ip_hash = ip ? sha256(ip + salt) : null;
+    const ua_hash = ua ? sha256(ua + salt) : null;
+
+    await db.query(
+      `INSERT INTO events (user_id, event_name, path, ip_hash, ua_hash)
+       VALUES (?, ?, ?, ?, ?)`,
+      [userId, String(event_name), path, ip_hash, ua_hash]
+    );
+  } catch (e) {
+    // 計測失敗で本処理を落とさない
+    console.error("logEvent error:", e?.message || e);
+  }
+}
+
 // ================================
 // Auth
 // ================================
@@ -105,16 +153,16 @@ app.post("/api/register", async (req, res) => {
     const password_hash = await bcrypt.hash(password, 10);
     await db.query("INSERT INTO users (username, password_hash) VALUES (?, ?)", [username, password_hash]);
 
+    await logEvent(req, "register");
     res.json({ ok: true });
-    } catch (e) {
-      console.error("POST /api/register error:", e);
-      if (e?.code === "ER_DUP_ENTRY") {
-        return res.status(409).json({ error: "そのユーザー名は既に使われています" });
-      }
-      return res.status(500).json({ error: "register failed" });
+  } catch (e) {
+    console.error("POST /api/register error:", e);
+    if (e?.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "そのユーザー名は既に使われています" });
     }
-
-  });
+    return res.status(500).json({ error: "register failed" });
+  }
+});
 
 app.post("/api/login", async (req, res) => {
   try {
@@ -128,6 +176,8 @@ app.post("/api/login", async (req, res) => {
     if (!ok) return res.status(401).json({ error: "invalid credentials" });
 
     req.session.userId = u.id;
+
+    await logEvent(req, "login");
     res.json({ ok: true, userId: u.id, username: u.username });
   } catch (e) {
     console.error("POST /api/login error:", e);
@@ -135,7 +185,8 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-app.post("/api/logout", (req, res) => {
+app.post("/api/logout", async (req, res) => {
+  await logEvent(req, "logout");
   req.session.destroy(() => res.json({ ok: true }));
 });
 
@@ -144,21 +195,69 @@ app.get("/api/me", async (req, res) => {
     const userId = req.session?.userId;
     if (!userId) return res.json({ loggedIn: false });
 
-    const [[u]] = await db.query(
-      "SELECT id, username, is_admin FROM users WHERE id=? LIMIT 1",
-      [userId]
-    );
+    const [[u]] = await db.query("SELECT id, username, is_admin FROM users WHERE id=? LIMIT 1", [userId]);
     if (!u) return res.json({ loggedIn: false });
 
     res.json({
       loggedIn: true,
       userId: u.id,
       username: u.username,
-      isAdmin: Number(u.is_admin) === 1,   // ★追加
+      isAdmin: Number(u.is_admin) === 1,
     });
   } catch (e) {
     console.error("GET /api/me error:", e);
     res.json({ loggedIn: false });
+  }
+});
+
+// ================================
+// Admin: stats
+// ================================
+app.get("/api/admin/stats/summary", requireAdmin, async (req, res) => {
+  try {
+    const [[dau]] = await db.query(`
+      SELECT COUNT(DISTINCT user_id) AS n
+      FROM events
+      WHERE user_id IS NOT NULL
+        AND created_at >= (CURRENT_DATE())
+    `);
+
+    const [[wau]] = await db.query(`
+      SELECT COUNT(DISTINCT user_id) AS n
+      FROM events
+      WHERE user_id IS NOT NULL
+        AND created_at >= (NOW() - INTERVAL 7 DAY)
+    `);
+
+    const [[mau]] = await db.query(`
+      SELECT COUNT(DISTINCT user_id) AS n
+      FROM events
+      WHERE user_id IS NOT NULL
+        AND created_at >= (NOW() - INTERVAL 30 DAY)
+    `);
+
+    const [[newUsers7]] = await db.query(`
+      SELECT COUNT(*) AS n
+      FROM users
+      WHERE created_at >= (NOW() - INTERVAL 7 DAY)
+    `);
+
+    const [[ideas7]] = await db.query(`
+      SELECT COUNT(*) AS n
+      FROM ideas
+      WHERE created_at >= (NOW() - INTERVAL 7 DAY)
+    `);
+
+    res.json({
+      dau: Number(dau.n || 0),
+      wau: Number(wau.n || 0),
+      mau: Number(mau.n || 0),
+      newUsers7: Number(newUsers7.n || 0),
+      ideas7: Number(ideas7.n || 0),
+    });
+  } catch (e) {
+    console.error("GET /api/admin/stats/summary error:", e);
+    res.status(500).json({ error: "stats failed" });
   }
 });
 
@@ -318,6 +417,7 @@ app.post("/api/ideas", requireLogin, async (req, res) => {
       ]
     );
 
+    await logEvent(req, "idea_create");
     res.json({ ok: true, id: result.insertId });
   } catch (e) {
     console.error("POST /api/ideas error:", e);
@@ -396,28 +496,32 @@ app.delete("/api/ideas/:id", requireLogin, requireOwner, async (req, res) => {
     res.status(500).json({ error: "DB delete failed" });
   }
 });
+
+// ================================
 // Likes: いいね
+// ================================
 app.post("/api/ideas/:id/like", requireLogin, async (req, res) => {
   try {
     const ideaId = Number(req.params.id);
     const userId = req.session.userId;
 
-    // 自分の投稿にはいいね禁止（DB参照して判定）
     const [[idea]] = await db.query("SELECT user_id FROM ideas WHERE id=? LIMIT 1", [ideaId]);
     if (!idea) return res.status(404).json({ error: "idea not found" });
     if (Number(idea.user_id) === Number(userId)) return res.status(403).json({ error: "cannot like own idea" });
 
     await db.query("INSERT IGNORE INTO likes (user_id, idea_id) VALUES (?, ?)", [userId, ideaId]);
 
+    await logEvent(req, "like");
+
     const [[c]] = await db.query("SELECT COUNT(*) AS like_count FROM likes WHERE idea_id=?", [ideaId]);
-    res.json({ ok: true, liked: 1, like_count: Number(c.like_count) });
+    res.json({ ok: true, liked: 1, like_count: Number(c.like_count || 0) });
   } catch (e) {
     console.error("POST /api/ideas/:id/like error:", e);
     res.status(500).json({ error: "like failed" });
   }
 });
 
-// Likes: いいね取り消し
+// Likes: いいね取り消し（※重複を1つに統一）
 app.delete("/api/ideas/:id/like", requireLogin, async (req, res) => {
   try {
     const ideaId = Number(req.params.id);
@@ -426,22 +530,7 @@ app.delete("/api/ideas/:id/like", requireLogin, async (req, res) => {
     await db.query("DELETE FROM likes WHERE user_id=? AND idea_id=?", [userId, ideaId]);
 
     const [[c]] = await db.query("SELECT COUNT(*) AS like_count FROM likes WHERE idea_id=?", [ideaId]);
-    res.json({ ok: true, liked: 0, like_count: Number(c.like_count) });
-  } catch (e) {
-    console.error("DELETE /api/ideas/:id/like error:", e);
-    res.status(500).json({ error: "unlike failed" });
-  }
-});
-
-app.delete("/api/ideas/:id/like", requireLogin, async (req, res) => {
-  try {
-    const ideaId = Number(req.params.id);
-    const userId = req.session.userId;
-
-    await db.query("DELETE FROM likes WHERE user_id=? AND idea_id=?", [userId, ideaId]);
-
-    const [[c]] = await db.query("SELECT COUNT(*) AS like_count FROM likes WHERE idea_id=?", [ideaId]);
-    res.json({ ok: true, liked: false, like_count: Number(c.like_count || 0) });
+    res.json({ ok: true, liked: 0, like_count: Number(c.like_count || 0) });
   } catch (e) {
     console.error("DELETE /api/ideas/:id/like error:", e);
     res.status(500).json({ error: "unlike failed" });
@@ -483,27 +572,16 @@ app.get("/api/mypage/ideas", requireLogin, async (req, res) => {
 });
 
 // ================================
-// Listen (Railway対応)
-// ================================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("Server running:", PORT);
-});
-
 // アカウント削除（ログイン中の自分だけ）
+// ================================
 app.delete("/api/account", requireLogin, async (req, res) => {
   try {
     const userId = req.session.userId;
 
-    // 依存データが CASCADE で消えない構成なら、先に手動削除が必要
-    // （あなたのDB構成に合わせて必要なものだけ残してOK）
     await db.query("DELETE FROM likes WHERE user_id = ?", [userId]);
     await db.query("DELETE FROM ideas WHERE user_id = ?", [userId]);
-
-    // 最後に users
     await db.query("DELETE FROM users WHERE id = ?", [userId]);
 
-    // セッション破棄
     req.session.destroy(() => {
       res.json({ ok: true });
     });
@@ -511,4 +589,12 @@ app.delete("/api/account", requireLogin, async (req, res) => {
     console.error("DELETE /api/account error:", e);
     res.status(500).json({ error: "Account delete failed" });
   }
+});
+
+// ================================
+// Listen (Railway対応)
+// ================================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("Server running:", PORT);
 });
