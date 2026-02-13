@@ -283,33 +283,44 @@ function setupAuthHandlers(refreshAll) {
   const passEl = $("#loginPass");
   const registerBtn = $("#registerBtn");
   const logoutBtn = $("#logoutBtn");
+  const loginBtn = $("#loginBtn");
 
-  // ログイン
+  let loginSubmitting = false;
+
+  // ログイン（★二重送信防止つき）
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!userEl?.value || !passEl?.value) {
-      alert("username と password を入力してください");
-      return;
+    if (loginSubmitting) return;
+    loginSubmitting = true;
+    if (loginBtn) loginBtn.disabled = true;
+
+    try {
+      if (!userEl?.value || !passEl?.value) {
+        alert("username と password を入力してください");
+        return;
+      }
+
+      const { res, data } = await apiJson("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ username: userEl.value, password: passEl.value }),
+      });
+
+      if (!res.ok) {
+        alert(data?.error || "ログインに失敗しました");
+        return;
+      }
+
+      userEl.value = "";
+      passEl.value = "";
+
+      await refreshAll();
+    } finally {
+      loginSubmitting = false;
+      if (loginBtn) loginBtn.disabled = false;
     }
-
-    const { res, data } = await apiJson("/api/login", {
-      method: "POST",
-      body: JSON.stringify({ username: userEl.value, password: passEl.value }),
-    });
-
-    if (!res.ok) {
-      alert(data?.error || "ログインに失敗しました");
-      return;
-    }
-
-    // 入力クリア（任意）
-    userEl.value = "";
-    passEl.value = "";
-
-    await refreshAll();
   });
 
-  // 登録
+   // 登録
   registerBtn?.addEventListener("click", async () => {
     if (!userEl?.value || !passEl?.value) {
       alert("username と password を入力してください");
