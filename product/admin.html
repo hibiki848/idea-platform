@@ -33,7 +33,7 @@
     <section class="hero">
       <div>
         <h1>Admin Dashboard</h1>
-        <p class="muted">DAU/WAUと直近イベントを確認できます（管理者のみ）</p>
+        <p class="muted">今日使った人/直近７日間で使った人と直近イベントを確認できます（管理者のみ）</p>
       </div>
     </section>
 
@@ -122,9 +122,9 @@
       }
       $("#summary").innerHTML = `
         <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
-          <div class="pill">DAU: <b>${data.dau}</b></div>
-          <div class="pill">WAU: <b>${data.wau}</b></div>
-          <div class="pill">MAU: <b>${data.mau}</b></div>
+          <div class="pill">今日使った人: <b>${data.dau}</b></div>
+          <div class="pill">直近７日間で使った人: <b>${data.wau}</b></div>
+          <div class="pill">直近３０日で使った人: <b>${data.mau}</b></div>
           <div class="pill">新規(7d): <b>${data.newUsers7}</b></div>
           <div class="pill">投稿(7d): <b>${data.ideas7}</b></div>
         </div>
