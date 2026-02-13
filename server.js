@@ -185,6 +185,7 @@ app.get("/api/ideas", async (req, res) => {
       ) lc ON lc.idea_id = i.id
       LEFT JOIN likes ul
         ON ul.idea_id = i.id AND ul.user_id = ?
+      WHERE i.status = 'published'
       ORDER BY i.created_at DESC
       `,
       [userId]
@@ -444,6 +445,40 @@ app.delete("/api/ideas/:id/like", requireLogin, async (req, res) => {
   } catch (e) {
     console.error("DELETE /api/ideas/:id/like error:", e);
     res.status(500).json({ error: "unlike failed" });
+  }
+});
+
+// ================================
+// Ideas (マイページ：自分の投稿 / 下書き含む)
+// ================================
+app.get("/api/mypage/ideas", requireLogin, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    const [rows] = await db.query(
+      `
+      SELECT
+        i.*,
+        u.username AS author_username,
+        COALESCE(lc.like_count, 0) AS like_count,
+        1 AS liked_by_me
+      FROM ideas i
+      LEFT JOIN users u ON u.id = i.user_id
+      LEFT JOIN (
+        SELECT idea_id, COUNT(*) AS like_count
+        FROM likes
+        GROUP BY idea_id
+      ) lc ON lc.idea_id = i.id
+      WHERE i.user_id = ?
+      ORDER BY i.updated_at DESC
+      `,
+      [userId]
+    );
+
+    res.json(rows);
+  } catch (e) {
+    console.error("GET /api/mypage/ideas error:", e);
+    res.status(500).json({ error: "DB read failed" });
   }
 });
 
